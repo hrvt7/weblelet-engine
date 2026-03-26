@@ -364,41 +364,99 @@ function calculateMarketingScore(scan: TechnicalScan): number {
   return Math.min(score, 100);
 }
 
-// ═══ LLM ANALYZER ═══
-const SYSTEM_PROMPT = `Te a WebLelet audit rendszer elemző modulja vagy. A technikai scan és compliance scan eredményeit kapod meg — ezek TÉNYEK, NE változtasd meg őket.
+// ═══ 13-AGENT LLM SYSTEM ═══
 
-KÖTELEZŐ SZABÁLYOK:
-- A quick wins-ben MINDIG legyen 1 üzleti + 1 jogi + 1 technikai elem
-- Compliance D/F → a biggest_gaps-ben KELL jogi hiányosság
-- TILOS: "teljes elvesztés", "gépileg vak", "nulla esély", "senki nem"
-- ÁSZF-nél feltételes mód: "szükséges lehet"
+const GLOBAL_RULES = `GLOBÁLIS SZABÁLYOK (minden válaszra vonatkozik):
+- Válaszolj KIZÁRÓLAG valid JSON-ban, semmilyen szöveg vagy markdown NE legyen a JSON-on kívül
+- Magyar nyelven válaszolj
+- TILOS: "teljes elvesztés", "gépileg vak", "nulla esély", "senki nem", "soha nem", "teljesen láthatatlan", "garantáltan", "biztosan"
+- ÁSZF-nél feltételes mód: "szükséges lehet" (NEM "köteles")
+- Finding severity: KRITIKUS / MAGAS / KÖZEPES
+- Finding tag: 🔴 TÉNY (forráskódból bizonyítható) / 🟡 ERŐS FELTÉTELEZÉS (valószínű) / 🟢 JAVASLAT (best practice)
+- Finding mezők (MIND kötelező): severity, tag, title, evidence, why_problem, business_impact, fix, fix_effort, priority`;
 
-Válaszolj KIZÁRÓLAG valid JSON-ban:
-{
-  "findings": [{"severity":"KRITIKUS/MAGAS/KÖZEPES","tag":"🔴 TÉNY/🟡 ERŐS FELTÉTELEZÉS/🟢 JAVASLAT","title":"...","evidence":"...","why_problem":"...","business_impact":"...","fix":"...","fix_effort":"...","priority":"MOST/30 NAP/KÉSŐBB"}],
-  "layman_summary": "2 perces összefoglaló magyarul",
-  "strengths": ["3 db"],
-  "biggest_gaps": ["3 db"],
-  "fastest_fixes": ["3 db"],
-  "quick_wins": [{"title":"...","who":"...","time":"...","cost":"...","type":"üzleti/jogi/technikai"}],
-  "schema_code": "JSON-LD kód vagy null",
-  "llms_txt": "llms.txt tartalom vagy null"
-}`;
+const AGENT_PROMPTS: Record<string, string> = {
+  "geo-ai-visibility": `${GLOBAL_RULES}
+Te az AI keresők láthatósági agent-je vagy. A robots.txt AI crawler státuszait és a domain-t kapod meg.
+Feladatod: elemezd melyik AI crawler (GPTBot, ClaudeBot, PerplexityBot stb.) van engedélyezve/tiltva, adj AI Citability score becslést és Brand Authority score-t.
+Válasz formátum: {"findings": [...], "ai_citability_score": 0-100, "brand_authority_score": 0-100}`,
 
-async function callAnthropicAPI(
-  technicalScan: TechnicalScan, complianceScan: ComplianceScan,
-  businessType: string, geoScore: number, marketingScore: number
-): Promise<{ analysis: any; tokensUsed: number }> {
+  "geo-platform-analysis": `${GLOBAL_RULES}
+Te az AI platform elemző agent vagy. Becsüld meg mennyire jelenik meg az oldal az 5 fő AI platformon.
+A technicalScan és a domain alapján adj platform score-okat. NE keressd ténylegesen — becsülj a technikai jelek alapján (schema, robots.txt, tartalom minőség).
+Válasz: {"findings": [], "platform_scores": {"google_ai": 0-100, "chatgpt": 0-100, "perplexity": 0-100, "gemini": 0-100, "bing_copilot": 0-100}}`,
+
+  "geo-technical": `${GLOBAL_RULES}
+Te a technikai SEO agent vagy. A technicalScan TÉNYEKET tartalmaz — ezekből generálj RÉSZLETES findings-eket.
+Ellenőrizd: canonical URL (dev domain? www vs non-www?), meta title/description (hossz, minőség), sitemap, robots.txt, heading struktúra, kép alt textek, OG tagek, GA4/GTM, HTTPS.
+Adj 2-4 finding-et a LEGSÚLYOSABB technikai problémákról. Minden finding-nek legyen evidence (MIT LÁTSZ a scan-ben), why_problem, business_impact, fix és fix_effort.
+Válasz: {"findings": [...]}`,
+
+  "geo-content": `${GLOBAL_RULES}
+Te a tartalom minőség agent vagy. A HTML első 5000 karakterét és az üzlettípust kapod.
+E-E-A-T értékelés: Experience (tapasztalat), Expertise (szakértelem), Authoritativeness (hitelesség), Trustworthiness (megbízhatóság).
+Tartalom hossz, nyelvi konzisztencia (magyar/angol keverés?), olvashatóság.
+Válasz: {"findings": [...], "content_quality_score": 0-100}`,
+
+  "geo-schema": `${GLOBAL_RULES}
+Te a schema markup és llms.txt agent vagy. Ha NINCS schema az oldalon, generálj RÉSZLETES JSON-LD kódot.
+ÉTTEREMNÉL: @graph-ot használj, Restaurant + LocalBusiness type, tartalmazza: name, address, geo (lat/lng placeholder), telephone, openingHours, servesCuisine, menu, priceRange, acceptsReservations, sameAs (social profilok placeholder).
+SZOLGÁLTATÓNÁL: LocalBusiness, Service type, serviceType, areaServed.
+WEBSHOPNÁL: Organization, WebSite, SearchAction.
+Ha NINCS llms.txt → generálj tartalmasat (nem minimálist).
+Ha VAN schema de hiányos → jelezd mit kellene bővíteni.
+Válasz: {"findings": [...], "schema_code": "részletes JSON-LD string vagy null", "llms_txt": "string vagy null"}`,
+
+  "market-content": `${GLOBAL_RULES}
+Te a marketing tartalom agent vagy. Elemezd a CTA gombokat, értékajánlatot, bizalmi elemeket (testimonials, review-k), brand konzisztenciát.
+Válasz: {"findings": [...], "content_marketing_score": 0-100}`,
+
+  "market-technical": `${GLOBAL_RULES}
+Te a marketing technikai agent vagy. Elemezd az analytics infrastruktúrát (GA4, GTM, Facebook Pixel), konverziómérés képességét, email lista építést (newsletter form?), retargeting lehetőségeket.
+Válasz: {"findings": [...], "technical_marketing_score": 0-100}`,
+
+  "compliance-findings": `${GLOBAL_RULES}
+Te a jogi compliance findings agent vagy. A complianceScan TÉNYEKET tartalmaz (43 pont pass/fail). A te feladatod SZÖVEGET adni a legfontosabb hibákhoz.
+A 2-4 LEGSÚLYOSABB compliance hibából generálj findings-eket magyar jogi kontextussal. Evidence: mi hiányzik konkrétan. Why_problem: miért jelent kockázatot. Fix: konkrét lépések.
+ÁSZF-nél feltételes mód: "szükséges lehet" NEM "köteles".
+Válasz: {"findings": [...]}`,
+
+  "synthesis-strengths": `${GLOBAL_RULES}
+Te az erősségeket összegyűjtő agent vagy. Kapod az összes eddigi agent eredményét.
+Adj 3 db KONKRÉT erősséget ami JÓL MŰKÖDIK. NEM banalitás ("a weboldal létezik") — hanem KONKRÉT pozitívum (pl. "HTTPS aktív és érvényes tanúsítvánnyal rendelkezik", "A GA4 analytics be van kötve").
+Válasz: {"strengths": ["...", "...", "..."]}`,
+
+  "synthesis-gaps-fixes": `${GLOBAL_RULES}
+Te a hiányosságok és javítások agent vagy. Kapod az összes finding-et.
+biggest_gaps: 3 db LEGNAGYOBB hiányosság üzleti hatás szerint priorizálva.
+fastest_fixes: 3 db LEGGYORSABB javítás amit AZONNAL meg lehet csinálni (< 1 óra).
+Válasz: {"biggest_gaps": ["...", "...", "..."], "fastest_fixes": ["...", "...", "..."]}`,
+
+  "synthesis-quickwins": `${GLOBAL_RULES}
+Te a quick win priorizáló agent vagy. 3 quick win-t adj ÜZLETI PRIORITÁS sorrendben.
+KÖTELEZŐ: legalább 1 üzleti + 1 jogi + 1 technikai típusú.
+ÉTTEREMNÉL: 1) Foglalás/rendelés CTA 2) Legsúlyosabb tech hiba 3) Jogi hiba
+SZOLGÁLTATÓNÁL: 1) CTA javítás 2) Tech hiba 3) Jogi hiba
+WEBSHOPNÁL: 1) Tech hiba 2) Trust elemek 3) Jogi hiba
+Válasz: {"quick_wins": [{"title":"...","who":"Ki csinálja","time":"Mennyi idő","cost":"Mennyibe kerül","type":"üzleti/jogi/technikai"}, ...]}`,
+
+  "synthesis-layman": `${GLOBAL_RULES}
+Te a laikus összefoglaló agent vagy. Írj 3-5 mondatos közérthető összefoglalót NEM TECHNIKAI embernek.
+TILOS használni: "canonical URL", "robots.txt", "schema markup", "JSON-LD", "meta tag", "sitemap".
+HELYETTE: "a Google nehezebben találja meg az oldalát", "a jogi dokumentumok hiányosak", "az AI keresők nem látják az oldalt".
+Válasz: {"layman_summary": "3-5 mondat magyarul"}`,
+
+  "synthesis-categories": `${GLOBAL_RULES}
+Te a score kategória bontó agent vagy. A technicalScan és complianceScan alapján adj kategória bontást.
+geo_categories: [{name: "AI Citability", score: 0-100, boost: "Ami emeli", drag: "Ami lehúzza", quick_fix: "Leggyorsabb javítás"}, ...] (6 kategória: AI Citability, Brand Authority, Tartalom & E-E-A-T, Technikai alapok, Strukturált adatok, Platform optimalizálás)
+marketing_categories: [{name: "Tartalom & Üzenetek", score: 0-100, boost, drag, quick_fix}, ...] (4 kategória: Tartalom & Üzenetek, Konverzió, SEO & Felfedezhetőség, Brand & Bizalom)
+Válasz: {"geo_categories": [...], "marketing_categories": [...]}`,
+};
+
+async function callAgent(agentName: string, input: Record<string, any>): Promise<any> {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
-
-  const userPrompt = `URL elemzése. Üzlettípus: ${businessType}
-GEO/SEO: ${geoScore}/100, Marketing: ${marketingScore}/100, Compliance: ${complianceScan.overall_score}/100 (${complianceScan.grade})
-
-TECHNIKAI SCAN:
-${JSON.stringify(technicalScan, null, 2)}
-
-COMPLIANCE SCAN:
-${JSON.stringify(complianceScan, null, 2)}`;
+  const systemPrompt = AGENT_PROMPTS[agentName];
+  if (!systemPrompt) throw new Error(`Unknown agent: ${agentName}`);
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -409,20 +467,94 @@ ${JSON.stringify(complianceScan, null, 2)}`;
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
+      max_tokens: 3000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: JSON.stringify(input) }],
     }),
   });
 
   const data = await res.json();
-  const text = data.content?.[0]?.text || "";
-  let jsonText = text.trim();
-  if (jsonText.startsWith("```")) jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-
-  const analysis = JSON.parse(jsonText);
+  const text = data.content?.[0]?.text || "{}";
   const tokensUsed = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
-  return { analysis, tokensUsed };
+
+  try {
+    const cleaned = text.trim().replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+    return { ...JSON.parse(cleaned), tokensUsed };
+  } catch {
+    console.error(`Agent ${agentName} invalid JSON:`, text.substring(0, 200));
+    return { findings: [], tokensUsed };
+  }
+}
+
+async function runAllAgents(
+  technicalScan: TechnicalScan, complianceScan: ComplianceScan,
+  rawHtml: string, businessType: string, domain: string, brandName: string
+): Promise<any> {
+  const allFindings: any[] = [];
+  let totalTokens = 0;
+
+  // === GEO AGENTS (1-5) ===
+  const r1 = await callAgent("geo-ai-visibility", { robots_txt: technicalScan.robots_txt, domain, businessType });
+  allFindings.push(...(r1.findings || [])); totalTokens += r1.tokensUsed || 0;
+
+  const r2 = await callAgent("geo-platform-analysis", { technicalScan, domain, businessType });
+  allFindings.push(...(r2.findings || [])); totalTokens += r2.tokensUsed || 0;
+
+  const r3 = await callAgent("geo-technical", { technicalScan, domain });
+  allFindings.push(...(r3.findings || [])); totalTokens += r3.tokensUsed || 0;
+
+  const r4 = await callAgent("geo-content", { html: rawHtml.substring(0, 5000), businessType });
+  allFindings.push(...(r4.findings || [])); totalTokens += r4.tokensUsed || 0;
+
+  const r5 = await callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName });
+  allFindings.push(...(r5.findings || [])); totalTokens += r5.tokensUsed || 0;
+
+  // === MARKETING AGENTS (6-7) ===
+  const r6 = await callAgent("market-content", { html: rawHtml.substring(0, 5000), technicalScan, businessType });
+  allFindings.push(...(r6.findings || [])); totalTokens += r6.tokensUsed || 0;
+
+  const r7 = await callAgent("market-technical", { technicalScan, businessType });
+  allFindings.push(...(r7.findings || [])); totalTokens += r7.tokensUsed || 0;
+
+  // === COMPLIANCE FINDINGS (8) ===
+  const r8 = await callAgent("compliance-findings", { complianceScan, businessType });
+  allFindings.push(...(r8.findings || [])); totalTokens += r8.tokensUsed || 0;
+
+  // === SYNTHESIS (9-13) ===
+  const r9 = await callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6, r7, r8 }, technicalScan, businessType });
+  totalTokens += r9.tokensUsed || 0;
+
+  const r10 = await callAgent("synthesis-gaps-fixes", { findings: allFindings, businessType });
+  totalTokens += r10.tokensUsed || 0;
+
+  const r11 = await callAgent("synthesis-quickwins", { findings: allFindings, businessType, complianceScan });
+  totalTokens += r11.tokensUsed || 0;
+
+  const r12 = await callAgent("synthesis-layman", {
+    strengths: r9.strengths, biggest_gaps: r10.biggest_gaps,
+    findings: allFindings, businessType,
+  });
+  totalTokens += r12.tokensUsed || 0;
+
+  const r13 = await callAgent("synthesis-categories", { technicalScan, complianceScan, businessType });
+  totalTokens += r13.tokensUsed || 0;
+
+  return {
+    findings: allFindings,
+    strengths: r9.strengths || [],
+    biggest_gaps: r10.biggest_gaps || [],
+    fastest_fixes: r10.fastest_fixes || [],
+    quick_wins: r11.quick_wins || [],
+    layman_summary: r12.layman_summary || "",
+    schema_code: r5.schema_code || null,
+    llms_txt: r5.llms_txt || null,
+    geo_categories: r13.geo_categories || [],
+    marketing_categories: r13.marketing_categories || [],
+    platform_scores: r2.platform_scores || {},
+    ai_citability_score: r1.ai_citability_score || 0,
+    brand_authority_score: r1.brand_authority_score || 0,
+    tokensUsed: totalTokens,
+  };
 }
 
 // ═══ VALIDATOR ═══
@@ -577,20 +709,33 @@ serve(async (req) => {
       compliance_grade: complianceScan.grade,
     });
 
-    // 5. LLM
-    const llmResult = await callAnthropicAPI(technicalScan, complianceScan, business_type, geoScore, marketingScore);
+    // 5. 13-AGENT LLM ANALYSIS
+    const domain = new URL(url).hostname.replace("www.", "");
+    const brandName = domain.split(".")[0].charAt(0).toUpperCase() + domain.split(".")[0].slice(1);
+
+    const agentResults = await runAllAgents(
+      technicalScan, complianceScan, html, business_type, domain, brandName
+    );
 
     // 6. BUILD JSON
-    const domain = new URL(url).hostname.replace("www.", "");
     const auditJson = {
-      url, domain,
-      brand_name: domain.split(".")[0].charAt(0).toUpperCase() + domain.split(".")[0].slice(1),
+      url, domain, brand_name: brandName,
       date: new Date().toISOString().split("T")[0],
       business_type, audit_level,
       geo_score: geoScore, marketing_score: marketingScore,
       compliance_score: complianceScan.overall_score, compliance_grade: complianceScan.grade,
       technical_scan: technicalScan, compliance_scan: complianceScan,
-      ...llmResult.analysis,
+      findings: agentResults.findings,
+      strengths: agentResults.strengths,
+      biggest_gaps: agentResults.biggest_gaps,
+      fastest_fixes: agentResults.fastest_fixes,
+      quick_wins: agentResults.quick_wins,
+      layman_summary: agentResults.layman_summary,
+      schema_code: agentResults.schema_code,
+      llms_txt: agentResults.llms_txt,
+      geo_categories: agentResults.geo_categories,
+      marketing_categories: agentResults.marketing_categories,
+      platform_scores: agentResults.platform_scores,
     };
 
     // 7. VALIDATE
@@ -598,21 +743,24 @@ serve(async (req) => {
     const validation = validateAuditJson(auditJson);
 
     if (!validation.passed) {
-      // Retry once
-      const retry = await callAnthropicAPI(technicalScan, complianceScan, business_type, geoScore, marketingScore);
-      const retryJson = { ...auditJson, ...retry.analysis };
-      const retryValidation = validateAuditJson(retryJson);
+      // Retry: rerun synthesis agents only (faster than all 13)
+      const retryR10 = await callAgent("synthesis-gaps-fixes", { findings: agentResults.findings, businessType: business_type });
+      const retryR11 = await callAgent("synthesis-quickwins", { findings: agentResults.findings, businessType: business_type, complianceScan });
+      auditJson.biggest_gaps = retryR10.biggest_gaps || auditJson.biggest_gaps;
+      auditJson.fastest_fixes = retryR10.fastest_fixes || auditJson.fastest_fixes;
+      auditJson.quick_wins = retryR11.quick_wins || auditJson.quick_wins;
+
+      const retryValidation = validateAuditJson(auditJson);
       if (!retryValidation.passed) {
-        await updateStatus("failed", { audit_json: retryJson, validation_result: retryValidation, error_message: retryValidation.errors.join("; ") });
-        return new Response(JSON.stringify({ error: "Validation failed" }), { status: 500 });
+        await updateStatus("failed", { audit_json: auditJson, validation_result: retryValidation, error_message: retryValidation.errors.join("; ") });
+        return new Response(JSON.stringify({ error: "Validation failed after retry" }), { status: 500 });
       }
-      Object.assign(auditJson, retry.analysis);
     }
 
     await updateStatus("generating", {
       audit_json: auditJson,
       validation_result: { passed: true, errors: [] },
-      llm_tokens_used: llmResult.tokensUsed,
+      llm_tokens_used: agentResults.tokensUsed,
     });
 
     // 8. PDF
