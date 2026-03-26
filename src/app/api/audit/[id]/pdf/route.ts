@@ -9,7 +9,7 @@ export async function GET(
 
   const { data: audit, error } = await supabase
     .from("audits")
-    .select("pdf_path, domain, date")
+    .select("pdf_path")
     .eq("id", params.id)
     .single();
 
