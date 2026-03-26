@@ -493,6 +493,44 @@ geo_categories (6 db): AI Citability, Brand Authority, Tartalom & E-E-A-T, Techn
 marketing_categories (4 db): Tartalom & Üzenetek, Konverzió, SEO & Felfedezhetőség, Brand & Bizalom
 
 Válasz: {"geo_categories": [...], "marketing_categories": [...]}`,
+
+  // === SZINT 2 AGENT-EK ===
+
+  "szint2-proposal": `${GLOBAL_RULES}
+Te a WebLelet szolgáltatási ajánlat modulja vagy. A partner adatlapból és a findings-ekből generálj 3 csomagot:
+1. ALAP (150-300 EUR/hó): Legkritikusabb hibák javítása
+2. STANDARD (300-600 EUR/hó): Alap + SEO + tartalom
+3. PRÉMIUM (600-1200 EUR/hó): Teljes marketing menedzsment
+
+Minden csomaghoz: mit tartalmaz (5-8 tétel), melyik findings-eket oldja meg, várható üzleti hatás (alacsony/közepes/magas — NEM konkrét Ft).
+Jelöld meg az AJÁNLOTT csomagot. A partner adatlapból használd: havi_ugyfelszam, atlagos_szamlaertek_ft, legnagyobb_uzleti_problema, marketing_budget.
+Válasz: {"packages": [{"name":"...","price":"...","features":[...],"solves":[...],"impact":"..."}], "recommended": 1, "business_impact_summary": "..."}`,
+
+  "szint2-email-sequences": `${GLOBAL_RULES}
+Generálj email szekvenciákat az ügyfél üzlettípusára szabva:
+- Welcome (3 email): subject + 2 mondat tartalom
+- Nurture (5 email): subject + 2 mondat tartalom
+- Konverziós (3 email): subject + 2 mondat tartalom
+ÉS 30 napos social media naptár vázlat (heti bontás, platformok, poszt típusok).
+A partner adatlapból: célcsoport, üzlettípus, versenytársak.
+Válasz: {"sequences": {"welcome": [{"subject":"...","body":"..."}], "nurture": [...], "conversion": [...]}, "social_calendar": "..."}`,
+
+  "szint2-outreach": `${GLOBAL_RULES}
+Generálj megkeresési stratégiát:
+- Csatorna javaslat (email, LinkedIn, telefon — melyik a legalkalmasabb)
+- 3 lépéses email szekvencia (subject + body vázlat)
+- Személyre szabási pontok a partner adatlapból
+- Timing javaslat
+Válasz: {"strategy": {"channels": [...], "email_sequence": [{"step":1,"subject":"...","body":"...","timing":"..."}], "personalization_points": [...], "timing": "..."}}`,
+
+  "szint2-executive": `${GLOBAL_RULES}
+Írj vezetői összefoglalót LAIKUS NYELVEN. TILOS technikai zsargon: canonical, robots.txt, JSON-LD, schema.
+HELYETTE: "a Google nehezebben találja az oldalát", "a jogi dokumentumok hiányoznak", "az AI keresők nem látják".
+- intro: 3-4 mondat NEM technikai döntéshozónak. Használj analógiát! Pl: "Ha az Ön üzlete egy fizikai bolt lenne..."
+- top3: A 3 legfontosabb teendő 1-1 mondatban közérthetően
+- steps: 5 konkrét lépés (ki, mit, mikor)
+A partner adatból: felhasználd a legnagyobb_uzleti_problema-t és a legfontosabb_cel-t.
+Válasz: {"intro": "...", "top3": ["...","...","..."], "steps": ["...","...","...","...","..."]}`,
 };
 
 async function callAgent(agentName: string, input: Record<string, any>): Promise<any> {
@@ -529,30 +567,44 @@ async function callAgent(agentName: string, input: Record<string, any>): Promise
 }
 
 function deduplicateFindings(findings: any[]): any[] {
-  const seen = new Map<string, any>();
   const sevOrder: Record<string, number> = { "KRITIKUS": 3, "MAGAS": 2, "KÖZEPES": 1 };
-  for (const f of findings) {
-    const key = f.title?.toLowerCase().replace(/[^a-záéíóöőúüű\s]/g, '').trim().substring(0, 50);
-    if (!key) continue;
-    let dominated = false;
-    for (const [existingKey, existingF] of seen) {
-      if (existingKey.includes(key.substring(0, 20)) || key.includes(existingKey.substring(0, 20))) {
-        if ((sevOrder[f.severity] || 0) > (sevOrder[existingF.severity] || 0)) {
-          seen.delete(existingKey);
-          seen.set(key, f);
-        }
-        dominated = true;
-        break;
-      }
+  const sorted = [...findings].sort((a, b) => (sevOrder[b.severity] || 0) - (sevOrder[a.severity] || 0));
+
+  const extractTopic = (title: string): string => {
+    const lower = (title || "").toLowerCase();
+    if (lower.includes("schema") || lower.includes("strukturált")) return "schema";
+    if (lower.includes("canonical")) return "canonical";
+    if (lower.includes("sitemap")) return "sitemap";
+    if (lower.includes("cookie") || (lower.includes("gdpr") && lower.includes("hozzájárulás"))) return "cookie_gdpr";
+    if (lower.includes("impresszum") || lower.includes("ászf")) return "impresszum_aszf";
+    if (lower.includes("ga4") || lower.includes("analytics") || lower.includes("gtm")) return "analytics";
+    if (lower.includes("meta") && (lower.includes("title") || lower.includes("description"))) return "meta";
+    if (lower.includes("robots") || lower.includes("crawler") || lower.includes("ai keres")) return "ai_crawler";
+    if (lower.includes("foglalás") || lower.includes("reservation") || lower.includes("booking")) return "booking";
+    if (lower.includes("alt") && lower.includes("text")) return "alt_text";
+    if (lower.includes("heading") || lower.includes("h1")) return "headings";
+    if (lower.includes("llms.txt")) return "llms_txt";
+    if (lower.includes("adatvéd") || lower.includes("privacy")) return "privacy";
+    if (lower.includes("cta") || lower.includes("konverzió")) return "cta";
+    return title.substring(0, 30);
+  };
+
+  const seenTopics = new Set<string>();
+  const result: any[] = [];
+  for (const f of sorted) {
+    const topic = extractTopic(f.title);
+    if (!seenTopics.has(topic)) {
+      seenTopics.add(topic);
+      result.push(f);
     }
-    if (!dominated) seen.set(key, f);
   }
-  return Array.from(seen.values());
+  return result;
 }
 
 async function runAllAgents(
   technicalScan: TechnicalScan, complianceScan: ComplianceScan,
-  rawHtml: string, businessType: string, domain: string, brandName: string
+  rawHtml: string, businessType: string, domain: string, brandName: string,
+  partnerData: any, auditLevel: string, geoScore: number, marketingScore: number
 ): Promise<any> {
   const rawFindings: any[] = [];
   let totalTokens = 0;
@@ -595,6 +647,30 @@ async function runAllAgents(
   ]);
   totalTokens += (r11.tokensUsed || 0) + (r12.tokensUsed || 0);
 
+  // === BATCH 4: SZINT 2 EXTRA AGENTS (csak ha szint2 és van partner data) ===
+  let szint2Extra: any = {};
+  if (auditLevel === "szint2" && partnerData) {
+    const scores = { geo: geoScore, marketing: marketingScore, compliance: complianceScan.overall_score };
+    const [proposal, emailSeq, outreach, execSummary] = await Promise.all([
+      callAgent("szint2-proposal", { findings: allFindings, partnerData, businessType, scores }),
+      callAgent("szint2-email-sequences", { findings: allFindings, partnerData, businessType }),
+      callAgent("szint2-outreach", { findings: allFindings, partnerData, businessType }),
+      callAgent("szint2-executive", { strengths: r9.strengths, biggest_gaps: r10.biggest_gaps, partnerData, businessType, scores }),
+    ]);
+    totalTokens += (proposal.tokensUsed || 0) + (emailSeq.tokensUsed || 0) + (outreach.tokensUsed || 0) + (execSummary.tokensUsed || 0);
+
+    szint2Extra = {
+      proposal_packages: proposal.packages || [],
+      business_impact_summary: proposal.business_impact_summary || "",
+      email_sequences: emailSeq.sequences || {},
+      social_calendar_summary: emailSeq.social_calendar || "",
+      outreach_strategy: outreach.strategy || {},
+      executive_layman_intro: execSummary.intro || "",
+      top3_layman: execSummary.top3 || [],
+      simple_action_steps: execSummary.steps || [],
+    };
+  }
+
   return {
     findings: allFindings,
     strengths: r9.strengths || [],
@@ -610,6 +686,7 @@ async function runAllAgents(
     ai_citability_score: r1.ai_citability_score || 0,
     brand_authority_score: r1.brand_authority_score || 0,
     tokensUsed: totalTokens,
+    ...szint2Extra,
   };
 }
 
@@ -765,12 +842,21 @@ serve(async (req) => {
       compliance_grade: complianceScan.grade,
     });
 
-    // 5. 13-AGENT LLM ANALYSIS
+    // 4.5. PARTNER DATA kiolvasás DB-ből
+    const { data: auditRow } = await supabase
+      .from("audits")
+      .select("partner_data")
+      .eq("id", auditId)
+      .single();
+    const partnerData = auditRow?.partner_data || null;
+
+    // 5. 13-AGENT LLM ANALYSIS (+4 Szint 2 agent ha van partner data)
     const domain = new URL(url).hostname.replace("www.", "");
     const brandName = domain.split(".")[0].charAt(0).toUpperCase() + domain.split(".")[0].slice(1);
 
     const agentResults = await runAllAgents(
-      technicalScan, complianceScan, html, business_type, domain, brandName
+      technicalScan, complianceScan, html, business_type, domain, brandName,
+      partnerData, audit_level, geoScore, marketingScore
     );
 
     // 6. BUILD JSON
@@ -792,6 +878,18 @@ serve(async (req) => {
       geo_categories: agentResults.geo_categories,
       marketing_categories: agentResults.marketing_categories,
       platform_scores: agentResults.platform_scores,
+      // Szint 2 extras
+      ...(audit_level === "szint2" ? {
+        proposal_packages: agentResults.proposal_packages,
+        business_impact_summary: agentResults.business_impact_summary,
+        email_sequences: agentResults.email_sequences,
+        social_calendar_summary: agentResults.social_calendar_summary,
+        outreach_strategy: agentResults.outreach_strategy,
+        executive_layman_intro: agentResults.executive_layman_intro,
+        top3_layman: agentResults.top3_layman,
+        simple_action_steps: agentResults.simple_action_steps,
+        partner_data: partnerData,
+      } : {}),
     };
 
     // 7. VALIDATE
