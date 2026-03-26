@@ -306,7 +306,7 @@ function scanCanSpam(allText: string, html: string): FrameworkResult {
   return { name: "E-mail szabályozás", checks, score: Math.round((passedPoints / checks.length) * 100), maxPoints: checks.length, passedPoints };
 }
 
-function runComplianceScan(html: string, subPages: Record<string, string>): ComplianceScan {
+function runComplianceScan(html: string, subPages: Record<string, string>, auditUrl?: string): ComplianceScan {
   const allText = html + " " + Object.values(subPages).join(" ");
   const privacyText = subPages["privacy"] || "";
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -314,7 +314,7 @@ function runComplianceScan(html: string, subPages: Record<string, string>): Comp
   const gdpr = scanGDPR(allText, privacyText, html);
   const hungarian = scanHungarian(allText);
   const accessibility = scanAccessibility(html, doc);
-  const pci = scanPCI(html, "https://"); // url passed separately
+  const pci = scanPCI(html, auditUrl || "https://");
   const canspam = scanCanSpam(allText, html);
 
   const overall_score = Math.round(
@@ -695,7 +695,10 @@ function validateAuditJson(data: any): { passed: boolean; errors: string[] } {
   const errors: string[] = [];
   if (!data.findings?.length) errors.push("Hiányzó findings");
   if (!data.quick_wins?.length || data.quick_wins.length < 3) errors.push("Minimum 3 quick win kell");
-  if (data.quick_wins?.every((q: any) => q.type === "technikai")) errors.push("Quick wins: nem lehet mind technikai");
+  if (data.quick_wins?.every((q: any) => {
+    const t = (q.type || "").toLowerCase();
+    return t.includes("technikai") || t.includes("tech");
+  })) errors.push("Quick wins: nem lehet mind technikai");
 
   const fullText = JSON.stringify(data);
   for (const phrase of FORBIDDEN_PHRASES) {
@@ -778,6 +781,21 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     primary_color: config.primary_color || "#2563EB",
   };
 
+  // Szint 2 extra adatok a template-hez
+  if (auditJson.audit_level === "szint2") {
+    Object.assign(templateData, {
+      is_szint2: true,
+      proposal_packages: auditJson.proposal_packages || [],
+      business_impact_summary: auditJson.business_impact_summary || "",
+      email_sequences: auditJson.email_sequences || {},
+      outreach_strategy: auditJson.outreach_strategy || {},
+      executive_layman_intro: auditJson.executive_layman_intro || "",
+      top3_layman: auditJson.top3_layman || [],
+      simple_action_steps: auditJson.simple_action_steps || [],
+      partner_data: auditJson.partner_data || null,
+    });
+  }
+
   const res = await fetch("https://api.pdfbolt.com/v1/direct", {
     method: "POST",
     headers: { "API-KEY": apiKey, "Content-Type": "application/json" },
@@ -826,7 +844,7 @@ serve(async (req) => {
     const technicalScan = runTechnicalScan(html, url, robotsTxt, sitemapRes?.status || null);
 
     // 3. COMPLIANCE SCAN
-    const complianceScan = runComplianceScan(html, subPages);
+    const complianceScan = runComplianceScan(html, subPages, url);
 
     // 4. SCORES
     const geoScore = calculateGeoScore(technicalScan);
@@ -842,13 +860,14 @@ serve(async (req) => {
       compliance_grade: complianceScan.grade,
     });
 
-    // 4.5. PARTNER DATA kiolvasás DB-ből
+    // 4.5. PARTNER DATA + MODULES kiolvasás DB-ből
     const { data: auditRow } = await supabase
       .from("audits")
-      .select("partner_data")
+      .select("partner_data, modules")
       .eq("id", auditId)
       .single();
     const partnerData = auditRow?.partner_data || null;
+    const modules = auditRow?.modules || null;
 
     // 5. 13-AGENT LLM ANALYSIS (+4 Szint 2 agent ha van partner data)
     const domain = new URL(url).hostname.replace("www.", "");
