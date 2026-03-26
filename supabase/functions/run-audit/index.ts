@@ -563,7 +563,7 @@ function validateAuditJson(data: any): { passed: boolean; errors: string[] } {
 // ═══ PDF GENERATION ═══
 async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint8Array> {
   const apiKey = Deno.env.get("PDFBOLT_API_KEY")!;
-  const TEMPLATE_ID = "a4384e1a-313a-4fb6-9a29-25976debe921";
+  const TEMPLATE_ID = "2a3f60f5-8e9e-4916-9c80-ee1abbfb95f9";
 
   // Az audit JSON-t templateData-ként küldjük a PDFBolt template-nek
   const templateData = {
