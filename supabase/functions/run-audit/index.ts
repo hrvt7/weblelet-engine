@@ -442,103 +442,74 @@ function validateAuditJson(data: any): { passed: boolean; errors: string[] } {
 // ═══ PDF GENERATION ═══
 async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint8Array> {
   const apiKey = Deno.env.get("PDFBOLT_API_KEY")!;
-  const scoreColor = (s: number) => s >= 75 ? "#22C55E" : s >= 50 ? "#F59E0B" : "#EF4444";
+  const TEMPLATE_ID = "379c6f4a-98e0-49a0-b59f-16d8cc14c27d";
 
-  // Build simple HTML for PDF
-  const findingsHtml = (auditJson.findings || []).map((f: any) => `
-    <div style="border:1px solid #E2E8F0;border-left:4px solid ${f.severity === "KRITIKUS" ? "#EF4444" : f.severity === "MAGAS" ? "#F59E0B" : "#3B82F6"};border-radius:8px;padding:16px;margin-bottom:12px;">
-      <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <span style="background:${f.severity === "KRITIKUS" ? "#FEE2E2" : "#FEF3C7"};color:${f.severity === "KRITIKUS" ? "#DC2626" : "#D97706"};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">${f.severity}</span>
-        <span style="font-size:11px;color:#64748B;">${f.tag}</span>
-      </div>
-      <h3 style="margin:0 0 8px;font-size:15px;">${f.title}</h3>
-      ${f.evidence ? `<p style="font-size:13px;color:#475569;margin:4px 0;"><strong>Mit látunk:</strong> ${f.evidence}</p>` : ""}
-      ${f.why_problem ? `<p style="font-size:13px;color:#475569;margin:4px 0;"><strong>Miért probléma:</strong> ${f.why_problem}</p>` : ""}
-      ${f.fix ? `<p style="font-size:13px;color:#475569;margin:4px 0;"><strong>Javítás:</strong> ${f.fix}</p>` : ""}
-      ${f.fix_effort ? `<p style="font-size:13px;color:#64748B;margin:4px 0;"><strong>Ráfordítás:</strong> ${f.fix_effort}</p>` : ""}
-    </div>
-  `).join("");
-
-  const quickWinsHtml = (auditJson.quick_wins || []).map((q: any, i: number) => `
-    <div style="border:1px solid #E2E8F0;border-radius:8px;padding:16px;margin-bottom:8px;display:flex;gap:12px;align-items:start;">
-      <div style="background:${config.primary_color};color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">${i + 1}</div>
-      <div><strong>${q.title}</strong><br><span style="font-size:12px;color:#64748B;">Ki: ${q.who} · Idő: ${q.time} · Költség: ${q.cost}</span></div>
-    </div>
-  `).join("");
-
-  const html = `<!DOCTYPE html><html lang="hu"><head><meta charset="UTF-8">
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family:'Inter',sans-serif; color:#1E293B; line-height:1.6; font-size:14px; }
-      .page { padding:48px; page-break-after:always; }
-      .cover { background:linear-gradient(135deg,#0F172A 0%,#1E3A5F 100%); color:white; min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:60px; }
-      .cover h1 { font-size:42px; font-weight:800; margin-bottom:8px; }
-      .cover .domain { font-size:18px; opacity:0.7; margin-bottom:32px; }
-      .gauges { display:flex; gap:40px; margin:32px 0; }
-      .gauge { text-align:center; }
-      .gauge-val { font-size:48px; font-weight:800; }
-      .gauge-label { font-size:12px; text-transform:uppercase; letter-spacing:2px; opacity:0.7; margin-top:4px; }
-      h2 { font-size:22px; font-weight:700; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid ${config.primary_color}; }
-      .section { margin-bottom:32px; }
-    </style>
-  </head><body>
-    <div class="cover">
-      <p style="font-size:12px;text-transform:uppercase;letter-spacing:3px;opacity:0.6;margin-bottom:24px;">WEBOLDAL GYORSDIAGNÓZIS</p>
-      <h1>${auditJson.brand_name || auditJson.domain}</h1>
-      <p class="domain">${auditJson.domain}</p>
-      <p style="font-size:14px;opacity:0.5;">${auditJson.date} · Készítette: ${config.company_name}</p>
-      <div class="gauges">
-        <div class="gauge"><div class="gauge-val" style="color:${scoreColor(auditJson.geo_score)}">${auditJson.geo_score}</div><div class="gauge-label">GEO / SEO</div></div>
-        <div class="gauge"><div class="gauge-val" style="color:${scoreColor(auditJson.marketing_score)}">${auditJson.marketing_score}</div><div class="gauge-label">MARKETING</div></div>
-        <div class="gauge"><div class="gauge-val" style="color:${scoreColor(auditJson.compliance_score)}">${auditJson.compliance_score}</div><div class="gauge-label">MEGFELELŐSÉG (${auditJson.compliance_grade})</div></div>
-      </div>
-      <p style="font-size:13px;opacity:0.5;">Gyorsdiagnózis — kizárólag nyilvános adatok alapján</p>
-    </div>
-
-    <div class="page">
-      <div class="section"><h2>Amit 2 percben tudnia kell</h2>
-        ${(auditJson.biggest_gaps || []).map((g: string) => `<div style="background:#F8FAFC;border-left:3px solid ${config.primary_color};padding:12px 16px;margin-bottom:8px;border-radius:0 8px 8px 0;"><strong>🟡 ${g}</strong></div>`).join("")}
-      </div>
-      <div class="section"><h2>3 azonnali teendő</h2>${quickWinsHtml}</div>
-    </div>
-
-    <div class="page">
-      <div class="section"><h2>Feltárt problémák és javaslatok</h2>${findingsHtml}</div>
-    </div>
-
-    <div class="page">
-      <div class="section"><h2>Következő lépés</h2>
-        <p>Ez a diagnózis a weboldal nyilvánosan elérhető adataiból készült.</p>
-        <div style="background:#F0F6FF;border-radius:12px;padding:20px;margin:16px 0;">
-          <h3 style="margin-bottom:8px;">Részletesebb elemzéshez szükséges:</h3>
-          <ul><li>Google Analytics hozzáférés</li><li>Google Cégprofil adatok</li><li>15 perces konzultáció</li></ul>
-        </div>
-        ${auditJson.schema_code ? `<div style="background:#F0FDF4;border-left:3px solid #22C55E;padding:12px 16px;margin:8px 0;border-radius:0 8px 8px 0;"><strong>✅ Kész megoldás: Schema markup (JSON-LD)</strong></div>` : ""}
-        ${auditJson.llms_txt ? `<div style="background:#F0FDF4;border-left:3px solid #22C55E;padding:12px 16px;margin:8px 0;border-radius:0 8px 8px 0;"><strong>✅ Kész megoldás: llms.txt</strong></div>` : ""}
-        <div style="margin-top:24px;"><h3>Kérje a részletes auditot:</h3><p>Email: ${config.contact_email}</p><p>Web: ${config.contact_website}</p></div>
-      </div>
-      <p style="font-size:11px;color:#94A3B8;margin-top:32px;text-align:center;">Ez a riport AI-támogatott elemzési rendszerrel készült, kizárólag nyilvánosan elérhető adatok alapján.<br>Készítette: ${config.company_name} — ${config.company_tagline} | ${auditJson.date}</p>
-    </div>
-  </body></html>`;
-
-  // PDFBolt requires base64-encoded HTML
-  const encoder = new TextEncoder();
-  const uint8 = encoder.encode(html);
-  let binary = "";
-  for (let i = 0; i < uint8.length; i++) {
-    binary += String.fromCharCode(uint8[i]);
-  }
-  const base64Html = btoa(binary);
+  // Az audit JSON-t templateData-ként küldjük a PDFBolt template-nek
+  const templateData = {
+    // Alap adatok
+    domain: auditJson.domain || "",
+    brand_name: auditJson.brand_name || auditJson.domain || "",
+    date: auditJson.date || new Date().toISOString().split("T")[0],
+    audit_level: auditJson.audit_level || "szint1",
+    business_type: auditJson.business_type || "Általános",
+    
+    // Score-ok
+    geo_score: auditJson.geo_score || 0,
+    marketing_score: auditJson.marketing_score || 0,
+    compliance_score: auditJson.compliance_score || 0,
+    compliance_grade: auditJson.compliance_grade || "N/A",
+    sales_score: auditJson.sales_score || null,
+    
+    // Összefoglaló
+    strengths: auditJson.strengths || [],
+    biggest_gaps: auditJson.biggest_gaps || [],
+    fastest_fixes: auditJson.fastest_fixes || [],
+    layman_summary: auditJson.layman_summary || "",
+    
+    // Findings
+    findings: (auditJson.findings || []).map((f: any) => ({
+      severity: f.severity || "",
+      tag: f.tag || "",
+      title: f.title || "",
+      evidence: f.evidence || "",
+      why_problem: f.why_problem || "",
+      business_impact: f.business_impact || "",
+      fix: f.fix || "",
+      fix_effort: f.fix_effort || "",
+      priority: f.priority || "",
+    })),
+    
+    // Quick wins
+    quick_wins: (auditJson.quick_wins || []).map((q: any, i: number) => ({
+      number: i + 1,
+      title: q.title || "",
+      description: q.description || "",
+      who: q.who || "",
+      time: q.time || "",
+      cost: q.cost || "",
+    })),
+    
+    // Compliance részletek
+    compliance_categories: auditJson.compliance_categories || {},
+    
+    // Technikai mellékletek
+    schema_code: auditJson.schema_code || "",
+    llms_txt: auditJson.llms_txt || "",
+    
+    // Config (white-label)
+    company_name: config.company_name || "WebLelet",
+    company_tagline: config.company_tagline || "",
+    contact_email: config.contact_email || "",
+    contact_website: config.contact_website || "",
+    primary_color: config.primary_color || "#2563EB",
+  };
 
   const res = await fetch("https://api.pdfbolt.com/v1/direct", {
     method: "POST",
     headers: { "API-KEY": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
-      html: base64Html,
-      format: "A4",
-      margin: { top: "54px", right: "57px", bottom: "63px", left: "57px" },
-      printBackground: true,
+      templateId: TEMPLATE_ID,
+      templateData: templateData,
     }),
   });
 
@@ -546,6 +517,7 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     const errorText = await res.text();
     throw new Error(`PDFBolt hiba: ${res.status} — ${errorText}`);
   }
+
   return new Uint8Array(await res.arrayBuffer());
 }
 
