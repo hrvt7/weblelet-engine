@@ -50,10 +50,28 @@ const AI_CRAWLERS = [
 
 const COMPLIANCE_WEIGHTS = { gdpr: 0.30, hungarian: 0.25, accessibility: 0.15, pci: 0.15, canspam: 0.15 };
 
-const FORBIDDEN_PHRASES = [
-  "teljes elvesztés", "gépileg vak", "nulla esély", "senki nem",
-  "soha nem", "teljesen láthatatlan", "garantáltan", "biztosan",
-];
+const FORBIDDEN_REPLACEMENTS: Record<string, string> = {
+  "teljes elvesztés": "jelentős romlás",
+  "gépileg vak": "nehezen olvasható gépi feldolgozás számára",
+  "nulla esély": "nagyon alacsony esély",
+  "senki nem": "szinte senki nem",
+  "soha nem": "jelenleg nem",
+  "teljesen láthatatlan": "nehezen észlelhető",
+  "garantáltan": "nagy valószínűséggel",
+  "biztosan": "várhatóan",
+  "kötelező bírság": "lehetséges szankció",
+  "köteles": "szükséges lehet",
+  "jogsértés": "jogi kockázat",
+};
+
+function sanitizeForbiddenPhrases(data: any): any {
+  let text = JSON.stringify(data);
+  for (const [forbidden, replacement] of Object.entries(FORBIDDEN_REPLACEMENTS)) {
+    const regex = new RegExp(forbidden, "gi");
+    text = text.replace(regex, replacement);
+  }
+  return JSON.parse(text);
+}
 
 function scoreToGrade(score: number): string {
   if (score >= 90) return "A";
@@ -700,10 +718,8 @@ function validateAuditJson(data: any): { passed: boolean; errors: string[] } {
     return t.includes("technikai") || t.includes("tech");
   })) errors.push("Quick wins: nem lehet mind technikai");
 
-  const fullText = JSON.stringify(data);
-  for (const phrase of FORBIDDEN_PHRASES) {
-    if (fullText.toLowerCase().includes(phrase)) errors.push(`Tiltott kifejezés: "${phrase}"`);
-  }
+  // Tiltott kifejezések AUTO-REPLACE (nem fail-el, hanem javít)
+  // A sanitizeForbiddenPhrases() már lefutott a validate ELŐTT
   return { passed: errors.length === 0, errors };
 }
 
@@ -911,8 +927,10 @@ serve(async (req) => {
       } : {}),
     };
 
-    // 7. VALIDATE
+    // 7. SANITIZE + VALIDATE
     await updateStatus("validating");
+    const sanitized = sanitizeForbiddenPhrases(auditJson);
+    Object.assign(auditJson, sanitized);
     const validation = validateAuditJson(auditJson);
 
     if (!validation.passed) {
