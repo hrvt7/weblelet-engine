@@ -453,10 +453,13 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     audit_level: auditJson.audit_level || "szint1",
     business_type: auditJson.business_type || "Általános",
     
-    // Score-ok
+    // Score-ok + előre kiszámolt szín osztályok
     geo_score: auditJson.geo_score || 0,
+    geo_color: (auditJson.geo_score || 0) < 40 ? "gc-red" : (auditJson.geo_score || 0) < 75 ? "gc-yellow" : "gc-green",
     marketing_score: auditJson.marketing_score || 0,
+    marketing_color: (auditJson.marketing_score || 0) < 40 ? "gc-red" : (auditJson.marketing_score || 0) < 75 ? "gc-yellow" : "gc-green",
     compliance_score: auditJson.compliance_score || 0,
+    compliance_color: (auditJson.compliance_score || 0) < 40 ? "gc-red" : (auditJson.compliance_score || 0) < 75 ? "gc-yellow" : "gc-green",
     compliance_grade: auditJson.compliance_grade || "N/A",
     sales_score: auditJson.sales_score || null,
     
@@ -471,6 +474,8 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       severity: f.severity || "",
       tag: f.tag || "",
       title: f.title || "",
+      border_class: f.severity === "KRITIKUS" ? "f-critical" : f.severity === "MAGAS" ? "f-high" : "f-medium",
+      sev_class: f.severity === "KRITIKUS" ? "b-critical" : f.severity === "MAGAS" ? "b-high" : "b-medium",
       evidence: f.evidence || "",
       why_problem: f.why_problem || "",
       business_impact: f.business_impact || "",
@@ -489,8 +494,12 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       cost: q.cost || "",
     })),
     
+    // Kategória bontás (score bar-okhoz, szín előre számolva)
+    geo_categories: (auditJson.geo_categories || []).map((c: any) => ({...c, color: (c.score||0) < 40 ? "fill-red" : (c.score||0) < 75 ? "fill-yellow" : "fill-green"})),
+    marketing_categories: (auditJson.marketing_categories || []).map((c: any) => ({...c, color: (c.score||0) < 40 ? "fill-red" : (c.score||0) < 75 ? "fill-yellow" : "fill-green"})),
+
     // Compliance részletek
-    compliance_categories: auditJson.compliance_categories || {},
+    compliance_categories: auditJson.compliance_categories || [],
     
     // Technikai mellékletek
     schema_code: auditJson.schema_code || "",
