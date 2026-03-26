@@ -1,0 +1,69 @@
+<div class="section page-break-before">
+  <h2 class="section-title">Audit Benchmark Score — heurisztikus értékelés</h2>
+
+  <h3>GEO / SEO Kategóriák</h3>
+  <div class="score-bars">
+    <div class="score-bar-row">
+      <span class="score-bar-label">Összesített GEO/SEO</span>
+      <div class="score-bar">
+        <div class="score-bar-fill" style="width: {{geo_score}}%; background: {{scoreColor geo_score}}"></div>
+      </div>
+      <span class="score-bar-value">{{geo_score}}</span>
+    </div>
+  </div>
+
+  <h3>Marketing Kategóriák</h3>
+  <div class="score-bars">
+    <div class="score-bar-row">
+      <span class="score-bar-label">Összesített Marketing</span>
+      <div class="score-bar">
+        <div class="score-bar-fill" style="width: {{marketing_score}}%; background: {{scoreColor marketing_score}}"></div>
+      </div>
+      <span class="score-bar-value">{{marketing_score}}</span>
+    </div>
+  </div>
+
+  {{#if compliance_score}}
+  <h3>Jogi Megfelelőség</h3>
+  <div class="score-bars">
+    <div class="score-bar-row">
+      <span class="score-bar-label">Összesített Compliance ({{compliance_grade}})</span>
+      <div class="score-bar">
+        <div class="score-bar-fill" style="width: {{compliance_score}}%; background: {{scoreColor compliance_score}}"></div>
+      </div>
+      <span class="score-bar-value">{{compliance_score}}</span>
+    </div>
+    {{#each complianceFrameworks}}
+    <div class="score-bar-row">
+      <span class="score-bar-label">{{this.name}}</span>
+      <div class="score-bar">
+        <div class="score-bar-fill" style="width: {{this.score}}%; background: {{scoreColor this.score}}"></div>
+      </div>
+      <span class="score-bar-value">{{this.score}}</span>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#if crawlerEntries.length}}
+  <h3>AI Crawler Hozzáférés</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>CRAWLER</th>
+        <th>STÁTUSZ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each crawlerEntries}}
+      <tr>
+        <td><strong>{{this.name}}</strong></td>
+        <td class="{{#if (eq this.status 'blocked')}}text-danger{{else}}text-success{{/if}}">
+          {{this.status}}{{#unless ../technical_scan.robots_txt.found}} (no robots.txt){{/unless}}
+        </td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{/if}}
+</div>

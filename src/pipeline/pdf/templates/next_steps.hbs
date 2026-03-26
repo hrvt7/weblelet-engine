@@ -1,0 +1,36 @@
+<div class="section page-break-before">
+  <h2 class="section-title">Következő lépés</h2>
+
+  <p>Ez a diagnózis a weboldal nyilvánosan elérhető adataiból készült.</p>
+
+  <div class="next-steps-box">
+    <h3>Részletesebb elemzéshez szükséges:</h3>
+    <ul>
+      <li>&rarr; Google Analytics hozzáférés</li>
+      <li>&rarr; Google Cégprofil adatok</li>
+      <li>&rarr; Forgalmi és bevételi adatok</li>
+      <li>&rarr; 15 perces konzultáció</li>
+    </ul>
+  </div>
+
+  {{#if schema_code}}
+  <div class="solution-box">
+    <h3>✅ Kész megoldás: Schema markup (JSON-LD) — beilleszthető a weboldalba</h3>
+    <pre><code>{{schema_code}}</code></pre>
+  </div>
+  {{/if}}
+
+  {{#if llms_txt}}
+  <div class="solution-box">
+    <h3>✅ Kész megoldás: llms.txt — feltölthető a domain gyökerébe</h3>
+    <pre><code>{{llms_txt}}</code></pre>
+  </div>
+  {{/if}}
+
+  <div class="contact-box">
+    <h3>Kérje a részletes auditot:</h3>
+    <p>Email: {{config.contact_email}}</p>
+    {{#if config.contact_phone}}<p>Telefon: {{config.contact_phone}}</p>{{/if}}
+    <p>Web: {{config.contact_website}}</p>
+  </div>
+</div>

@@ -1,0 +1,21 @@
+<div class="section page-break-before">
+  <h2 class="section-title">Szolgáltatási csomagok</h2>
+
+  {{#if proposal_packages}}
+  <div class="package-grid">
+    {{#each proposal_packages}}
+    <div class="package-card">
+      <h3 class="package-name">{{this.name}}</h3>
+      <p class="package-price">{{this.price}}</p>
+      <p class="package-desc">{{this.description}}</p>
+      <ul>
+        {{#each this.features}}
+        <li>{{this}}</li>
+        {{/each}}
+      </ul>
+      {{#if this.timeline}}<p class="package-timeline">Időkeret: {{this.timeline}}</p>{{/if}}
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+</div>

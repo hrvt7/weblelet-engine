@@ -1,0 +1,28 @@
+<div class="section page-break-before">
+  <h2 class="section-title">Feltárt problémák és javaslatok</h2>
+
+  {{#each findings}}
+  <div class="finding-card {{severityClass this.severity}}">
+    <div class="finding-header">
+      <span class="finding-severity">{{this.severity}}</span>
+      <span class="finding-tag">{{this.tag}}</span>
+    </div>
+    <h3 class="finding-title">{{this.title}}</h3>
+    {{#if this.evidence}}
+    <p class="finding-evidence"><strong>Mit látunk:</strong> {{this.evidence}}</p>
+    {{/if}}
+    {{#if this.why_problem}}
+    <p class="finding-impact"><strong>Miért probléma:</strong> {{this.why_problem}}</p>
+    {{/if}}
+    {{#if this.business_impact}}
+    <p class="finding-impact"><strong>Üzleti hatás:</strong> {{this.business_impact}}</p>
+    {{/if}}
+    {{#if this.fix}}
+    <p class="finding-fix"><strong>Javítás:</strong> {{this.fix}}</p>
+    {{/if}}
+    {{#if this.fix_effort}}
+    <p class="finding-effort"><strong>Ráfordítás:</strong> {{this.fix_effort}}</p>
+    {{/if}}
+  </div>
+  {{/each}}
+</div>

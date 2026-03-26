@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{config.company_name}} — Weboldal Audit: {{domain}}</title>
+  <style>
+    :root {
+      --primary: {{config.primary_color}};
+      --accent: {{config.accent_color}};
+    }
+    {{{css}}}
+  </style>
+</head>
+<body>
+  {{> cover}}
+
+  {{> layman}}
+
+  {{> quick_wins}}
+
+  {{> scorecard}}
+
+  {{#if isSzint2}}
+    {{> separator title="RÉSZLETES ELEMZÉS" subtitle="A teljes audit eredményei"}}
+    {{> executive}}
+    {{> methodology}}
+  {{/if}}
+
+  {{> findings}}
+
+  {{> next_steps}}
+
+  {{#if isSzint2}}
+    {{> separator title="SZOLGÁLTATÁSI AJÁNLAT" subtitle="Testreszabott csomagok"}}
+    {{> proposal}}
+    {{> competitors}}
+    {{> action_plan}}
+    {{> appendix}}
+  {{/if}}
+
+  <div class="footer-disclaimer">
+    <p>{{config.disclaimer}}</p>
+    <p>Készítette: {{config.company_name}} — {{config.company_tagline}} | Generálva: {{date}}</p>
+  </div>
+</body>
+</html>

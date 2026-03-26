@@ -1,0 +1,25 @@
+<div class="section page-break-before">
+  <h2 class="section-title">Fejlesztési terv</h2>
+
+  {{#if action_plan}}
+  {{#each action_plan}}
+  <div class="action-phase">
+    <h3 class="phase-title">{{this.phase}} <span class="phase-timeframe">{{this.timeframe}}</span></h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>Feladat</th><th>Felelős</th><th>Ráfordítás</th></tr>
+      </thead>
+      <tbody>
+        {{#each this.tasks}}
+        <tr>
+          <td>{{this.task}}</td>
+          <td>{{this.who}}</td>
+          <td>{{this.effort}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{/each}}
+  {{/if}}
+</div>

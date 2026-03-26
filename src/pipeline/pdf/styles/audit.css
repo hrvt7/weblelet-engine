@@ -1,0 +1,349 @@
+/* ═══════════════════════════════════════════════════════
+   WEBLELET AUDIT — PRÉMIUM PDF DESIGN v4 (végleges)
+   Cél: kompakt, profi, nincs üres oldal, természetes flow
+   ═══════════════════════════════════════════════════════ */
+
+/* --- OLDALBEÁLLÍTÁS --- */
+@page {
+    size: A4;
+    margin: 1.8cm 2cm 2.2cm 2cm;
+    @bottom-center {
+        font-family: 'Inter', -apple-system, Helvetica, sans-serif;
+        font-size: 7.5pt;
+        color: #94A3B8;
+    }
+}
+@page :first {
+    margin: 0;
+    @bottom-center { content: none; }
+}
+
+/* --- CSS VÁLTOZÓK --- */
+:root {
+    --primary: #2563EB;
+    --primary-light: #DBEAFE;
+    --primary-dark: #1E40AF;
+    --accent: #F59E0B;
+    --bg: #FFFFFF;
+    --bg-alt: #F8FAFC;
+    --bg-card: #F1F5F9;
+    --bg-blue: #EFF6FF;
+    --navy: #0F172A;
+    --text: #1E293B;
+    --text-muted: #64748B;
+    --text-light: #94A3B8;
+    --border: #E2E8F0;
+    --border-light: #F1F5F9;
+    --success: #059669;
+    --success-bg: #ECFDF5;
+    --danger: #DC2626;
+    --danger-bg: #FEF2F2;
+    --warning: #D97706;
+    --warning-bg: #FFFBEB;
+    --orange: #EA580C;
+    --orange-bg: #FFF7ED;
+    --purple: #7C3AED;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* --- ALAP TIPOGRÁFIA --- */
+body {
+    font-family: 'Inter', -apple-system, Helvetica, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.55;
+    color: var(--text);
+    background: var(--bg);
+}
+
+p, li, .desc {
+    orphans: 3;
+    widows: 3;
+}
+
+/* --- SZEKCIÓ FEJLÉCEK (középre igazítva) --- */
+.section-title {
+    text-align: center;
+    font-size: 16pt;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--navy);
+    margin-bottom: 3px;
+    padding-top: 4px;
+}
+.section-subtitle {
+    text-align: center;
+    font-size: 8.5pt;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+.section-divider-line {
+    width: 50px;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 2px;
+    margin: 6px auto 10px auto;
+}
+
+/* --- AL-FEJLÉCEK --- */
+h2 { font-size: 14pt; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; color: var(--text); padding-bottom: 4px; border-bottom: 2px solid var(--primary); margin-top: 12px; }
+h3 { font-size: 10.5pt; font-weight: 700; color: var(--navy); margin-bottom: 6px; margin-top: 14px; padding-bottom: 3px; border-bottom: 1px solid var(--border); }
+p { margin-bottom: 5px; }
+
+/* --- UTILITY --- */
+.text-muted { color: var(--text-muted); }
+.text-primary { color: var(--primary); }
+.text-danger { color: var(--danger); font-weight: 600; }
+.text-success { color: var(--success); font-weight: 600; }
+.text-warning { color: var(--warning); }
+.text-sm { font-size: 8.5pt; }
+.text-xs { font-size: 7.5pt; color: var(--text-light); }
+.text-center { text-align: center; }
+.bold { font-weight: 700; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+
+/* --- SZEKCIÓ SPACING (flow, NEM page-break) --- */
+.section {
+    margin-top: 20px;
+    padding-top: 0;
+}
+
+/* --- PAGE BREAK SZABÁLYOK --- */
+.page-break { page-break-after: always; }
+.page-break-before { page-break-before: always; }
+
+.finding-card, .quick-win, .layman-card, .package, .action-phase {
+    page-break-inside: avoid !important;
+}
+table { page-break-inside: avoid; }
+thead { display: table-header-group; }
+h2, h3 { page-break-after: avoid; }
+.section-title { page-break-after: avoid; }
+
+/* --- CÍMLAP --- */
+.cover-page {
+    page-break-after: always;
+    background: var(--navy);
+    color: white;
+    padding: 4cm 2.5cm;
+    height: 297mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+.cover-page .report-type {
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--text-light);
+    margin-bottom: 18px;
+}
+.cover-page h1 {
+    color: white;
+    font-size: 34pt;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+    border: none;
+}
+.cover-page .domain { font-size: 12pt; color: var(--text-light); margin-bottom: 3px; }
+.cover-page .date { font-size: 10pt; color: var(--text-light); margin-bottom: 6px; }
+.cover-page .company { font-size: 9.5pt; color: var(--text-light); }
+
+.gauge-row { display: flex; justify-content: center; gap: 24px; margin-top: 36px; }
+.gauge { text-align: center; }
+.gauge-circle {
+    width: 80px; height: 80px; border-radius: 50%;
+    border: 5px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 6px; font-size: 24pt; font-weight: 800; color: white;
+}
+.gauge-circle.critical { border-color: var(--danger); }
+.gauge-circle.weak { border-color: var(--warning); }
+.gauge-circle.ok { border-color: var(--primary); }
+.gauge-circle.good { border-color: var(--success); }
+.gauge-label { font-size: 8pt; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.08em; }
+.cover-note { margin-top: 28px; font-size: 8.5pt; color: var(--text-light); }
+.pipeline-score { text-align: center; margin-top: 28px; }
+.pipeline-score .big-number { font-size: 48pt; font-weight: 800; color: white; line-height: 1; }
+.pipeline-score .label { font-size: 10pt; color: var(--text-light); margin-top: 4px; }
+
+/* --- FINDING KÁRTYÁK --- */
+.finding-card {
+    background: var(--bg-card);
+    border-left: 4px solid var(--border);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    page-break-inside: avoid !important;
+}
+.finding-card.critical { border-left-color: var(--danger); background: var(--danger-bg); }
+.finding-card.high { border-left-color: var(--orange); background: var(--orange-bg); }
+.finding-card.medium { border-left-color: var(--warning); background: var(--warning-bg); }
+.finding-card .meta { margin-bottom: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.finding-card h3 { font-size: 10pt; margin: 0 0 3px 0; padding: 0; border: none; color: var(--navy); }
+.finding-card .desc { font-size: 9pt; color: var(--text-muted); line-height: 1.45; margin: 0 0 2px 0; }
+
+.tag {
+    display: inline-block; font-size: 7pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 7px; border-radius: 3px;
+}
+.tag.critical { background: var(--danger); color: white; }
+.tag.high { background: var(--orange); color: white; }
+.tag.medium { background: var(--warning); color: white; }
+.tag.low { background: var(--primary); color: white; }
+.tag.fact { background: #DBEAFE; color: #1E40AF; }
+.tag.assumption { background: #FEF3C7; color: #92400E; }
+.tag.suggestion { background: #D1FAE5; color: #065F46; }
+
+.layman-box {
+    margin-top: 5px; padding: 6px 10px;
+    background: var(--bg-blue); border-radius: 5px;
+    font-style: italic; color: var(--primary-dark);
+    font-size: 8.5pt; line-height: 1.45;
+}
+.layman-box strong { color: var(--primary); font-style: normal; }
+
+/* --- LAYMAN ÖSSZEFOGLALÓ KÁRTYÁK --- */
+.layman-card {
+    background: var(--bg-card); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 8px;
+    page-break-inside: avoid !important;
+}
+.layman-card .problem { font-weight: 700; font-size: 10pt; margin-bottom: 2px; color: var(--navy); }
+.layman-card .analogy { font-style: italic; color: var(--text-muted); font-size: 9pt; line-height: 1.45; }
+.layman-card .loss { color: var(--danger); font-weight: 700; font-size: 10pt; }
+.layman-card .fix { color: var(--success); font-size: 8.5pt; }
+
+.total-loss-box {
+    background: var(--navy); color: white;
+    text-align: center; padding: 10px 16px;
+    border-radius: 6px; margin: 10px 0;
+    font-size: 12pt; font-weight: 700;
+}
+
+/* --- QUICK WINS --- */
+.quick-win {
+    display: flex; gap: 12px; padding: 10px 14px;
+    background: var(--bg-alt); border-radius: 8px;
+    margin-bottom: 8px; page-break-inside: avoid !important;
+    border-left: 3px solid var(--success);
+}
+.quick-win .number { font-size: 18pt; font-weight: 800; color: var(--success); min-width: 30px; line-height: 1; }
+.quick-win .content { flex: 1; }
+.quick-win .content .title { font-weight: 600; font-size: 10pt; margin-bottom: 2px; }
+.quick-win .content .detail { font-size: 8.5pt; color: var(--text-muted); }
+
+/* --- SCORE BAR --- */
+.score-bar-row { display: flex; align-items: center; margin-bottom: 5px; }
+.score-bar-label { width: 150px; font-size: 9pt; flex-shrink: 0; }
+.score-bar-track { flex: 1; height: 9px; background: var(--border); border-radius: 5px; margin: 0 10px; overflow: hidden; }
+.score-bar-fill { height: 100%; border-radius: 5px; }
+.score-bar-fill.critical { background: var(--danger); }
+.score-bar-fill.weak { background: var(--warning); }
+.score-bar-fill.ok { background: var(--primary); }
+.score-bar-fill.good { background: var(--success); }
+.score-bar-value { width: 32px; font-size: 9.5pt; font-weight: 700; text-align: right; }
+
+/* Crawler státuszok */
+.status-allowed { color: var(--success); font-weight: 600; }
+.status-blocked { color: var(--danger); font-weight: 600; }
+.status-unknown { color: var(--warning); font-weight: 600; }
+
+/* --- TÁBLÁZATOK --- */
+table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9pt; }
+thead th {
+    background: var(--navy); color: white; font-weight: 600;
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 7px 10px; text-align: left;
+}
+tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+tbody tr:nth-child(even) { background: var(--bg-alt); }
+.table-compact td, .table-compact th { padding: 5px 8px; font-size: 8.5pt; }
+
+/* --- SZEKCIÓ ELVÁLASZTÓ (Szint 2, teljes oldal) --- */
+.section-divider {
+    page-break-before: always;
+    background: var(--navy); color: white;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center; height: 297mm; padding: 4cm;
+}
+.section-divider .divider-bar { width: 60px; height: 3px; background: var(--primary); border-radius: 2px; margin-bottom: 20px; }
+.section-divider h2 { font-size: 22pt; font-weight: 800; color: white; border: none; margin: 0 0 10px 0; padding: 0; }
+.section-divider p { font-size: 10pt; color: var(--text-light); max-width: 380px; line-height: 1.5; }
+
+/* --- PROPOSAL CSOMAGOK --- */
+.package-grid { display: flex; gap: 12px; margin: 14px 0; }
+.package {
+    flex: 1; border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; page-break-inside: avoid;
+}
+.package.recommended { border: 2px solid var(--primary); background: var(--bg-blue); }
+.package h3 { font-size: 11pt; margin-bottom: 2px; margin-top: 0; padding: 0; border: none; }
+.package .price { font-size: 16pt; font-weight: 800; color: var(--primary); margin: 6px 0; }
+.package ul { list-style: none; padding: 0; margin: 6px 0; }
+.package li { padding: 2px 0; font-size: 8.5pt; }
+.package li::before { content: "✓ "; color: var(--success); font-weight: 700; }
+
+/* --- NEXT STEPS --- */
+.next-steps-box {
+    background: var(--bg-blue); border-radius: 8px;
+    padding: 14px 18px; margin: 12px 0;
+}
+.next-steps-box h3 { color: var(--primary-dark); border: none; margin-top: 0; }
+.next-steps-box ul { list-style: none; padding: 0; margin: 6px 0; }
+.next-steps-box li { padding: 2px 0; font-size: 9.5pt; }
+.next-steps-box li::before { content: "→ "; color: var(--primary); font-weight: 700; }
+
+.solution-box {
+    background: var(--success-bg); border-left: 3px solid var(--success);
+    padding: 8px 12px; border-radius: 0 6px 6px 0;
+    margin: 6px 0; font-size: 9pt;
+}
+
+/* --- DISCLAIMER --- */
+.disclaimer {
+    font-size: 7pt; color: var(--text-light);
+    line-height: 1.3; font-style: italic; margin-top: 6px;
+}
+
+/* --- ACTION PLAN --- */
+.action-phase { margin-bottom: 12px; page-break-inside: avoid; }
+.action-phase .phase-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.action-phase .dot { width: 8px; height: 8px; border-radius: 50%; }
+.action-phase .dot.green { background: var(--success); }
+.action-phase .dot.blue { background: var(--primary); }
+.action-phase .dot.purple { background: var(--purple); }
+.action-phase ol { padding-left: 18px; font-size: 9pt; }
+.action-phase li { margin-bottom: 3px; }
+
+/* --- REPORT FOOTER --- */
+.report-footer {
+    margin-top: 24px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 7.5pt; color: var(--text-light);
+    text-align: center; line-height: 1.4;
+}
+
+/* --- NOT AVAILABLE --- */
+.not-available {
+    font-style: italic; color: var(--text-light);
+    padding: 8px; background: var(--bg-alt);
+    border-radius: 6px; font-size: 9pt; margin: 6px 0;
+}
+
+/* --- PARTNER FORM --- */
+.form-section { margin-bottom: 16px; page-break-inside: avoid; }
+.form-section h3 { background: var(--bg-alt); padding: 6px 10px; border-left: 3px solid var(--primary); margin-bottom: 8px; }
+.form-field { display: flex; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.form-field .label { width: 180px; font-weight: 600; font-size: 9pt; flex-shrink: 0; }
+.form-field .input { flex: 1; border-bottom: 1px dotted var(--text-light); min-height: 16px; font-size: 9pt; color: var(--text-light); }

@@ -1,0 +1,23 @@
+<div class="section page-break-before">
+  <h2 class="section-title">Függelék</h2>
+
+  {{#if outreach_strategy}}
+  <h3>Megkeresési stratégia</h3>
+  <p>{{outreach_strategy.summary}}</p>
+  {{/if}}
+
+  <h3>Technikai adatok</h3>
+  <table class="data-table">
+    <tbody>
+      <tr><td>URL</td><td>{{url}}</td></tr>
+      <tr><td>Domain</td><td>{{domain}}</td></tr>
+      <tr><td>Audit szint</td><td>{{audit_level}}</td></tr>
+      <tr><td>Audit dátum</td><td>{{date}}</td></tr>
+      <tr><td>HTTPS</td><td>{{#if technical_scan.https}}Igen{{else}}Nem{{/if}}</td></tr>
+      <tr><td>Nyelv</td><td>{{technical_scan.lang_attr}}</td></tr>
+      <tr><td>Schema típusok</td><td>{{#each technical_scan.schema_markup.types}}{{this}} {{/each}}{{#unless technical_scan.schema_markup.found}}Nincs{{/unless}}</td></tr>
+      <tr><td>Robots.txt</td><td>{{#if technical_scan.robots_txt.found}}Van{{else}}Hiányzik{{/if}}</td></tr>
+      <tr><td>Sitemap</td><td>{{#if technical_scan.sitemap.found}}Van{{else}}Hiányzik{{/if}}</td></tr>
+    </tbody>
+  </table>
+</div>

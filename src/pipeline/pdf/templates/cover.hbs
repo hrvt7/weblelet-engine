@@ -1,0 +1,42 @@
+<div class="cover-page">
+  <div class="cover-header">
+    <p class="cover-label">WEBOLDAL {{#if isSzint2}}AUDIT{{else}}GYORSDIAGNÓZIS{{/if}}</p>
+  </div>
+  <div class="cover-brand">
+    <h1 class="cover-title">{{brand_name}}</h1>
+    <p class="cover-domain">{{domain}}</p>
+    <p class="cover-date">{{date}}</p>
+    <p class="cover-by">Készítette: {{config.company_name}}</p>
+  </div>
+  <div class="cover-scores">
+    <div class="cover-gauge">
+      <div class="gauge-circle" style="--score: {{geo_score}}; --color: {{scoreColor geo_score}}">
+        <span class="gauge-value">{{geo_score}}</span>
+      </div>
+      <p class="gauge-label">GEO / SEO</p>
+    </div>
+    <div class="cover-gauge">
+      <div class="gauge-circle" style="--score: {{marketing_score}}; --color: {{scoreColor marketing_score}}">
+        <span class="gauge-value">{{marketing_score}}</span>
+      </div>
+      <p class="gauge-label">MARKETING</p>
+    </div>
+    {{#if compliance_score}}
+    <div class="cover-gauge">
+      <div class="gauge-circle" style="--score: {{compliance_score}}; --color: {{scoreColor compliance_score}}">
+        <span class="gauge-value">{{compliance_score}}</span>
+      </div>
+      <p class="gauge-label">MEGFELELŐSÉG</p>
+    </div>
+    {{/if}}
+    {{#if sales_score}}
+    <div class="cover-gauge">
+      <div class="gauge-circle" style="--score: {{sales_score}}; --color: {{scoreColor sales_score}}">
+        <span class="gauge-value">{{sales_score}}</span>
+      </div>
+      <p class="gauge-label">SALES</p>
+    </div>
+    {{/if}}
+  </div>
+  <p class="cover-subtitle">{{#if isSzint2}}Teljes audit{{else}}Gyorsdiagnózis{{/if}} — kizárólag nyilvános adatok alapján</p>
+</div>

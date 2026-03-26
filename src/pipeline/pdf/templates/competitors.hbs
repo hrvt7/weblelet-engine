@@ -1,0 +1,24 @@
+<div class="section page-break-before">
+  <h2 class="section-title">Versenytárs elemzés</h2>
+
+  {{#if competitors}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Versenytárs</th>
+        <th>Erősségek</th>
+        <th>Gyengeségek</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each competitors}}
+      <tr>
+        <td><strong>{{this.name}}</strong><br><small>{{this.url}}</small></td>
+        <td><ul>{{#each this.strengths}}<li>{{this}}</li>{{/each}}</ul></td>
+        <td><ul>{{#each this.weaknesses}}<li>{{this}}</li>{{/each}}</ul></td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{/if}}
+</div>

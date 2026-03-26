@@ -1,0 +1,15 @@
+<div class="section">
+  <h2 class="section-title">{{#if isSzint1}}3 azonnali teendő{{else}}Azonnali teendők{{/if}}</h2>
+
+  {{#each quick_wins}}
+  <div class="quick-win-card">
+    <div class="quick-win-number">{{inc @index}}</div>
+    <div class="quick-win-content">
+      <h3 class="quick-win-title">{{this.title}}</h3>
+      <p class="quick-win-meta">
+        Ki: {{this.who}} &nbsp; Idő: {{this.time}} &nbsp; Költség: {{this.cost}}
+      </p>
+    </div>
+  </div>
+  {{/each}}
+</div>
