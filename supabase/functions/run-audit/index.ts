@@ -493,51 +493,40 @@ async function runAllAgents(
   const allFindings: any[] = [];
   let totalTokens = 0;
 
-  // === GEO AGENTS (1-5) ===
-  const r1 = await callAgent("geo-ai-visibility", { robots_txt: technicalScan.robots_txt, domain, businessType });
-  allFindings.push(...(r1.findings || [])); totalTokens += r1.tokensUsed || 0;
+  // === BATCH 1: GEO + MARKETING + COMPLIANCE PÁRHUZAMOSAN (8 hívás egyszerre) ===
+  const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
+    callAgent("geo-ai-visibility", { robots_txt: technicalScan.robots_txt, domain, businessType }),
+    callAgent("geo-platform-analysis", { technicalScan, domain, businessType }),
+    callAgent("geo-technical", { technicalScan, domain }),
+    callAgent("geo-content", { html: rawHtml.substring(0, 5000), businessType }),
+    callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName }),
+    callAgent("market-content", { html: rawHtml.substring(0, 5000), technicalScan, businessType }),
+    callAgent("market-technical", { technicalScan, businessType }),
+    callAgent("compliance-findings", { complianceScan, businessType }),
+  ]);
+  
+  for (const r of [r1, r2, r3, r4, r5, r6, r7, r8]) {
+    allFindings.push(...(r.findings || []));
+    totalTokens += r.tokensUsed || 0;
+  }
 
-  const r2 = await callAgent("geo-platform-analysis", { technicalScan, domain, businessType });
-  allFindings.push(...(r2.findings || [])); totalTokens += r2.tokensUsed || 0;
+  // === BATCH 2: SYNTHESIS — strengths + gaps/fixes + categories PÁRHUZAMOSAN ===
+  const [r9, r10, r13] = await Promise.all([
+    callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6, r7, r8 }, technicalScan, businessType }),
+    callAgent("synthesis-gaps-fixes", { findings: allFindings, businessType }),
+    callAgent("synthesis-categories", { technicalScan, complianceScan, businessType }),
+  ]);
+  totalTokens += (r9.tokensUsed || 0) + (r10.tokensUsed || 0) + (r13.tokensUsed || 0);
 
-  const r3 = await callAgent("geo-technical", { technicalScan, domain });
-  allFindings.push(...(r3.findings || [])); totalTokens += r3.tokensUsed || 0;
-
-  const r4 = await callAgent("geo-content", { html: rawHtml.substring(0, 5000), businessType });
-  allFindings.push(...(r4.findings || [])); totalTokens += r4.tokensUsed || 0;
-
-  const r5 = await callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName });
-  allFindings.push(...(r5.findings || [])); totalTokens += r5.tokensUsed || 0;
-
-  // === MARKETING AGENTS (6-7) ===
-  const r6 = await callAgent("market-content", { html: rawHtml.substring(0, 5000), technicalScan, businessType });
-  allFindings.push(...(r6.findings || [])); totalTokens += r6.tokensUsed || 0;
-
-  const r7 = await callAgent("market-technical", { technicalScan, businessType });
-  allFindings.push(...(r7.findings || [])); totalTokens += r7.tokensUsed || 0;
-
-  // === COMPLIANCE FINDINGS (8) ===
-  const r8 = await callAgent("compliance-findings", { complianceScan, businessType });
-  allFindings.push(...(r8.findings || [])); totalTokens += r8.tokensUsed || 0;
-
-  // === SYNTHESIS (9-13) ===
-  const r9 = await callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6, r7, r8 }, technicalScan, businessType });
-  totalTokens += r9.tokensUsed || 0;
-
-  const r10 = await callAgent("synthesis-gaps-fixes", { findings: allFindings, businessType });
-  totalTokens += r10.tokensUsed || 0;
-
-  const r11 = await callAgent("synthesis-quickwins", { findings: allFindings, businessType, complianceScan });
-  totalTokens += r11.tokensUsed || 0;
-
-  const r12 = await callAgent("synthesis-layman", {
-    strengths: r9.strengths, biggest_gaps: r10.biggest_gaps,
-    findings: allFindings, businessType,
-  });
-  totalTokens += r12.tokensUsed || 0;
-
-  const r13 = await callAgent("synthesis-categories", { technicalScan, complianceScan, businessType });
-  totalTokens += r13.tokensUsed || 0;
+  // === BATCH 3: QUICKWINS + LAYMAN (kell az előző eredmény) ===
+  const [r11, r12] = await Promise.all([
+    callAgent("synthesis-quickwins", { findings: allFindings, businessType, complianceScan }),
+    callAgent("synthesis-layman", {
+      strengths: r9.strengths, biggest_gaps: r10.biggest_gaps,
+      findings: allFindings, businessType,
+    }),
+  ]);
+  totalTokens += (r11.tokensUsed || 0) + (r12.tokensUsed || 0);
 
   return {
     findings: allFindings,
