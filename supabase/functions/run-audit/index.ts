@@ -522,16 +522,30 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     </div>
   </body></html>`;
 
+  // PDFBolt requires base64-encoded HTML
+  const encoder = new TextEncoder();
+  const uint8 = encoder.encode(html);
+  let binary = "";
+  for (let i = 0; i < uint8.length; i++) {
+    binary += String.fromCharCode(uint8[i]);
+  }
+  const base64Html = btoa(binary);
+
   const res = await fetch("https://api.pdfbolt.com/v1/direct", {
     method: "POST",
     headers: { "API-KEY": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
-      html,
-      options: { format: "A4", margin: { top: "1.5cm", right: "1.5cm", bottom: "2cm", left: "1.5cm" }, printBackground: true },
+      html: base64Html,
+      format: "A4",
+      margin: { top: "54px", right: "57px", bottom: "63px", left: "57px" },
+      printBackground: true,
     }),
   });
 
-  if (!res.ok) throw new Error(`PDFBolt hiba: ${res.status}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`PDFBolt hiba: ${res.status} — ${errorText}`);
+  }
   return new Uint8Array(await res.arrayBuffer());
 }
 
