@@ -13,81 +13,41 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      setError("Hibás email vagy jelszó");
-      setLoading(false);
-      return;
-    }
-
-    router.push("/");
-    router.refresh();
+    setLoading(true); setError("");
+    const { error } = await createClient().auth.signInWithPassword({ email, password });
+    if (error) { setError("Hibás email vagy jelszó"); setLoading(false); return; }
+    router.push("/"); router.refresh();
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
+          <div className="inline-flex items-center gap-2.5 mb-4">
+            <div style={{ background: "var(--accent)", width: 36, height: 36, borderRadius: 10 }} className="flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#09090B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             </div>
-            <span className="text-2xl font-bold text-gray-900">
-              Web<span className="text-blue-600">Lelet</span>
-            </span>
+            <span className="font-syne text-xl font-bold" style={{ color: "var(--accent)" }}>WebLelet</span>
           </div>
-          <p className="text-gray-500 text-sm">Admin felület — Bejelentkezés</p>
+          <p className="label-mono">ADMIN FELÜLET</p>
         </div>
 
-        <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 space-y-5">
-          {error && (
-            <div className="bg-red-50 text-red-600 text-sm rounded-lg px-4 py-3 border border-red-200">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleLogin} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 28 }} className="space-y-5">
+          {error && <div style={{ background: "rgba(255,107,107,0.08)", border: "1px solid rgba(255,107,107,0.2)", borderRadius: 8, color: "var(--red)" }} className="text-xs px-4 py-3 font-mono">{error}</div>}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              placeholder="admin@weblelet.hu"
-            />
+            <p className="label-mono mb-2">EMAIL</p>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@weblelet.hu" />
           </div>
-
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-              Jelszó
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
+            <p className="label-mono mb-2">JELSZÓ</p>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {loading ? "Bejelentkezés..." : "Bejelentkezés"}
+          <button type="submit" disabled={loading}
+            style={{ background: "var(--accent)", color: "var(--bg)", borderRadius: 9, width: "100%", padding: 12, border: "none" }}
+            className="font-syne font-bold text-sm hover:opacity-90 disabled:opacity-40 transition-opacity">
+            {loading ? "BEJELENTKEZÉS..." : "BEJELENTKEZÉS"}
           </button>
         </form>
       </div>

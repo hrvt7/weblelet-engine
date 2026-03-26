@@ -590,21 +590,30 @@ function deduplicateFindings(findings: any[]): any[] {
 
   const extractTopic = (title: string): string => {
     const lower = (title || "").toLowerCase();
-    if (lower.includes("schema") || lower.includes("strukturált")) return "schema";
+    if (lower.includes("schema") || lower.includes("strukturált") || lower.includes("json-ld")) return "schema";
     if (lower.includes("canonical")) return "canonical";
     if (lower.includes("sitemap")) return "sitemap";
-    if (lower.includes("cookie") || (lower.includes("gdpr") && lower.includes("hozzájárulás"))) return "cookie_gdpr";
-    if (lower.includes("impresszum") || lower.includes("ászf")) return "impresszum_aszf";
-    if (lower.includes("ga4") || lower.includes("analytics") || lower.includes("gtm")) return "analytics";
-    if (lower.includes("meta") && (lower.includes("title") || lower.includes("description"))) return "meta";
-    if (lower.includes("robots") || lower.includes("crawler") || lower.includes("ai keres")) return "ai_crawler";
-    if (lower.includes("foglalás") || lower.includes("reservation") || lower.includes("booking")) return "booking";
-    if (lower.includes("alt") && lower.includes("text")) return "alt_text";
-    if (lower.includes("heading") || lower.includes("h1")) return "headings";
-    if (lower.includes("llms.txt")) return "llms_txt";
-    if (lower.includes("adatvéd") || lower.includes("privacy")) return "privacy";
-    if (lower.includes("cta") || lower.includes("konverzió")) return "cta";
-    return title.substring(0, 30);
+    if (lower.includes("cookie") || lower.includes("gdpr") || lower.includes("hozzájárulás") || lower.includes("süti") || lower.includes("adatvéd") || lower.includes("privacy")) return "cookie_gdpr_privacy";
+    if (lower.includes("impresszum") || lower.includes("ászf") || lower.includes("jogi dokumentum")) return "legal_docs";
+    if (lower.includes("ga4") || lower.includes("analytics") || lower.includes("gtm") || lower.includes("tag manager") || lower.includes("követőkód") || lower.includes("webanalitika") || lower.includes("mérés")) return "analytics";
+    if (lower.includes("meta") && (lower.includes("title") || lower.includes("description") || lower.includes("leírás") || lower.includes("adat"))) return "meta";
+    if (lower.includes("robots") || lower.includes("crawler") || lower.includes("ai keres") || lower.includes("ai-specifikus") || lower.includes("ai seo")) return "ai_crawler";
+    if (lower.includes("foglalás") || lower.includes("reservation") || lower.includes("booking") || lower.includes("rendelés")) return "booking";
+    if (lower.includes("alt") && (lower.includes("text") || lower.includes("szöveg"))) return "alt_text";
+    if (lower.includes("heading") || lower.includes("h1") || lower.includes("címsor")) return "headings";
+    if (lower.includes("llms.txt") || lower.includes("llms txt")) return "llms_txt";
+    if (lower.includes("cta") || lower.includes("konverzió") || lower.includes("gomb")) return "cta";
+    if (lower.includes("kontakt") || lower.includes("kapcsolat") || lower.includes("elérhetőség") || lower.includes("contact")) return "contact_info";
+    if (lower.includes("pixel") || lower.includes("retargeting") || lower.includes("facebook")) return "retargeting";
+    if (lower.includes("open graph") || lower.includes("og ")) return "open_graph";
+    if (lower.includes("bizalm") || lower.includes("testimonial") || lower.includes("értékelés") || lower.includes("review") || lower.includes("trust")) return "trust";
+    if (lower.includes("hírlevél") || lower.includes("newsletter") || lower.includes("email market") || lower.includes("can-spam") || lower.includes("email szabályoz")) return "email_marketing";
+    if (lower.includes("fizetés") || lower.includes("payment") || lower.includes("pci")) return "payment";
+    if (lower.includes("helyi") && lower.includes("seo") || lower.includes("local seo")) return "local_seo";
+    if (lower.includes("tartalom") || lower.includes("e-e-a-t")) return "content";
+    if (lower.includes("értékajánlat")) return "value_prop";
+    if (lower.includes("sürgető") || lower.includes("akció")) return "urgency";
+    return "unique_" + lower.replace(/[^a-záéíóöőúüű]/g, "").substring(0, 25);
   };
 
   const seenTopics = new Set<string>();

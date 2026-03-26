@@ -2,6 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #09090B;
+  --bg-card: #111113;
+  --border: #1E1E22;
+  --accent: #00E5A0;
+  --yellow: #FFD166;
+  --red: #FF6B6B;
+  --blue: #4CC9F0;
+  --text: #E4E4E7;
+  --muted: #71717A;
+  --sidebar: #0D0D0F;
+  --text-sub: #A1A1AA;
+  --accent-dim: rgba(0,229,160,0.08);
+  --accent-border: rgba(0,229,160,0.2);
+  --bg-hover: rgba(255,255,255,0.03);
+}
+
 body {
-  font-family: var(--font-inter), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.font-syne { font-family: 'Syne', sans-serif; }
+.font-mono { font-family: 'DM Mono', monospace; }
+
+.label-mono {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+::selection { background: rgba(0,229,160,0.3); color: white; }
+
+input, select, textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+
+input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+input[type="color"] {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border-radius: 8px;
+  cursor: pointer;
 }
