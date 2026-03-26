@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Audit } from "@/lib/types";
@@ -31,22 +30,32 @@ export default function AuditResultPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data } = await supabase.from("audits").select("*").eq("id", id).single();
-      setAudit(data as Audit | null);
+      try {
+        const res = await fetch(`/api/audit/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAudit(data as Audit);
+        }
+      } catch (e) {
+        console.error("Audit load error:", e);
+      }
       setLoading(false);
     }
     load();
 
     // Poll if in progress
     const interval = setInterval(async () => {
-      const supabase = createClient();
-      const { data } = await supabase.from("audits").select("*").eq("id", id).single();
-      if (data) {
-        setAudit(data as Audit);
-        if (data.status === "completed" || data.status === "failed") {
-          clearInterval(interval);
+      try {
+        const res = await fetch(`/api/audit/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAudit(data as Audit);
+          if (data.status === "completed" || data.status === "failed") {
+            clearInterval(interval);
+          }
         }
+      } catch (e) {
+        console.error("Poll error:", e);
       }
     }, 3000);
 
