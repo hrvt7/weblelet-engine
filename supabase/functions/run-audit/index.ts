@@ -571,7 +571,7 @@ A partner adatból: felhasználd a legnagyobb_uzleti_problema-t és a legfontosa
 Válasz: {"intro": "...", "top3": ["...","...","..."], "steps": ["...","...","...","...","..."]}`,
 };
 
-async function callAgent(agentName: string, input: Record<string, any>): Promise<any> {
+async function callAgent(agentName: string, input: Record<string, any>, auditLevel = "szint1"): Promise<any> {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
     console.error(`[callAgent] ANTHROPIC_API_KEY is not set!`);
@@ -579,6 +579,11 @@ async function callAgent(agentName: string, input: Record<string, any>): Promise
   }
   const systemPrompt = AGENT_PROMPTS[agentName];
   if (!systemPrompt) throw new Error(`Unknown agent: ${agentName}`);
+
+  // Cost optimization: Haiku for szint1 (free tier), Sonnet for szint2 (paid)
+  // Haiku 4.5: $1/$5 MTok vs Sonnet 4.6: $3/$15 MTok — ~5x savings on free audits
+  const model = auditLevel === "szint2" ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+  const maxTokens = auditLevel === "szint2" ? 3000 : 1500;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -588,8 +593,8 @@ async function callAgent(agentName: string, input: Record<string, any>): Promise
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 3000,
+      model,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: JSON.stringify(input) }],
     }),
@@ -666,16 +671,18 @@ async function runAllAgents(
   const rawFindings: any[] = [];
   let totalTokens = 0;
 
+  const al = auditLevel; // shorthand for readability
+
   // === BATCH 1: GEO + MARKETING + COMPLIANCE PÁRHUZAMOSAN (8 hívás egyszerre) ===
   const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
-    callAgent("geo-ai-visibility", { robots_txt: technicalScan.robots_txt, domain, businessType }),
-    callAgent("geo-platform-analysis", { technicalScan, domain, businessType }),
-    callAgent("geo-technical", { technicalScan, domain }),
-    callAgent("geo-content", { html: rawHtml.substring(0, 5000), businessType }),
-    callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName }),
-    callAgent("market-content", { html: rawHtml.substring(0, 5000), technicalScan, businessType }),
-    callAgent("market-technical", { technicalScan, businessType }),
-    callAgent("compliance-findings", { complianceScan, businessType }),
+    callAgent("geo-ai-visibility", { robots_txt: technicalScan.robots_txt, domain, businessType }, al),
+    callAgent("geo-platform-analysis", { technicalScan, domain, businessType }, al),
+    callAgent("geo-technical", { technicalScan, domain }, al),
+    callAgent("geo-content", { html: rawHtml.substring(0, 5000), businessType }, al),
+    callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName }, al),
+    callAgent("market-content", { html: rawHtml.substring(0, 5000), technicalScan, businessType }, al),
+    callAgent("market-technical", { technicalScan, businessType }, al),
+    callAgent("compliance-findings", { complianceScan, businessType }, al),
   ]);
   
   for (const r of [r1, r2, r3, r4, r5, r6, r7, r8]) {
@@ -688,19 +695,19 @@ async function runAllAgents(
 
   // === BATCH 2: SYNTHESIS — strengths + gaps/fixes + categories PÁRHUZAMOSAN ===
   const [r9, r10, r13] = await Promise.all([
-    callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6, r7, r8 }, technicalScan, businessType }),
-    callAgent("synthesis-gaps-fixes", { findings: allFindings, businessType }),
-    callAgent("synthesis-categories", { technicalScan, complianceScan, businessType }),
+    callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6, r7, r8 }, technicalScan, businessType }, al),
+    callAgent("synthesis-gaps-fixes", { findings: allFindings, businessType }, al),
+    callAgent("synthesis-categories", { technicalScan, complianceScan, businessType }, al),
   ]);
   totalTokens += (r9.tokensUsed || 0) + (r10.tokensUsed || 0) + (r13.tokensUsed || 0);
 
   // === BATCH 3: QUICKWINS + LAYMAN (kell az előző eredmény) ===
   const [r11, r12] = await Promise.all([
-    callAgent("synthesis-quickwins", { findings: allFindings, businessType, complianceScan }),
+    callAgent("synthesis-quickwins", { findings: allFindings, businessType, complianceScan }, al),
     callAgent("synthesis-layman", {
       strengths: r9.strengths, biggest_gaps: r10.biggest_gaps,
       findings: allFindings, businessType,
-    }),
+    }, al),
   ]);
   totalTokens += (r11.tokensUsed || 0) + (r12.tokensUsed || 0);
 
@@ -709,10 +716,10 @@ async function runAllAgents(
   if (auditLevel === "szint2" && partnerData) {
     const scores = { geo: geoScore, marketing: marketingScore, compliance: complianceScan.overall_score };
     const [proposal, emailSeq, outreach, execSummary] = await Promise.all([
-      callAgent("szint2-proposal", { findings: allFindings, partnerData, businessType, scores }),
-      callAgent("szint2-email-sequences", { findings: allFindings, partnerData, businessType }),
-      callAgent("szint2-outreach", { findings: allFindings, partnerData, businessType }),
-      callAgent("szint2-executive", { strengths: r9.strengths, biggest_gaps: r10.biggest_gaps, partnerData, businessType, scores }),
+      callAgent("szint2-proposal", { findings: allFindings, partnerData, businessType, scores }, "szint2"),
+      callAgent("szint2-email-sequences", { findings: allFindings, partnerData, businessType }, "szint2"),
+      callAgent("szint2-outreach", { findings: allFindings, partnerData, businessType }, "szint2"),
+      callAgent("szint2-executive", { strengths: r9.strengths, biggest_gaps: r10.biggest_gaps, partnerData, businessType, scores }, "szint2"),
     ]);
     totalTokens += (proposal.tokensUsed || 0) + (emailSeq.tokensUsed || 0) + (outreach.tokensUsed || 0) + (execSummary.tokensUsed || 0);
 
