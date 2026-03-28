@@ -725,8 +725,14 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
   </p>
   <div class="code-block">{{schema_code}}</div>
   {{else}}
-  <div style="padding:16px;background:#f8fafc;border-radius:6px;border:1px dashed #cbd5e1;text-align:center;">
-    <p style="font-size:11px;color:#64748b;">Schema markup nem szükséges — az oldal már rendelkezik strukturált adatokkal.</p>
+  <div style="padding:20px 24px;background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #bfdbfe;border-radius:8px;margin-top:8px;">
+    <p style="font-size:11px;font-weight:bold;color:#1d4ed8;margin-bottom:6px;">🔒 Schema Markup (JSON-LD) — Szint 2 funkcó</p>
+    <p style="font-size:10.5px;color:#334155;line-height:1.7;margin-bottom:10px;">
+      Az audit azonosította, hogy a <strong>strukturált adatok hiányoznak vagy hiányosak</strong> az oldaladon.
+      Szint 2 auditban kapsz egy <strong>kész, másolható JSON-LD kódot</strong> — csak be kell illeszteni a weboldalba,
+      vagy átadni a fejlesztőnek. Google Rich Results tesztelés inclúdált.
+    </p>
+    <p style="font-size:10px;color:#1d4ed8;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
   </div>
   {{/if}}
 
@@ -747,8 +753,14 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
   </p>
   <div class="code-block">{{llms_txt}}</div>
   {{else}}
-  <div style="padding:20px;background:#f8fafc;border-radius:6px;border:1px dashed #cbd5e1;text-align:center;margin-bottom:20px;">
-    <p style="font-size:11px;color:#64748b;">llms.txt nem szükséges, vagy az oldal már rendelkezik vele.</p>
+  <div style="padding:20px 24px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:8px;margin-bottom:20px;">
+    <p style="font-size:11px;font-weight:bold;color:#15803d;margin-bottom:6px;">🔒 llms.txt fájl generálás — Szint 2 funkció</p>
+    <p style="font-size:10.5px;color:#334155;line-height:1.7;margin-bottom:10px;">
+      Az AI keresők (ChatGPT, Perplexity, Google AI) számára optimalizált <strong>kész llms.txt fájl</strong>
+      — a te weboldaladra szabva, másolásra készen — Szint 2 auditban szerepel.
+      Ez az a fájl, ami segít abban, hogy az AI keresők pontosan mutassák be a vállalkozásodat.
+    </p>
+    <p style="font-size:10px;color:#15803d;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
   </div>
   {{/if}}
 

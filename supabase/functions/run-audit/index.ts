@@ -859,9 +859,9 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     // Compliance részletek
     compliance_categories: auditJson.compliance_categories || [],
     
-    // Technikai mellékletek
-    schema_code: auditJson.schema_code || "",
-    llms_txt: auditJson.llms_txt || "",
+    // Technikai mellékletek — szint1-ben üres (upsell hook), szint2-ben valódi kód
+    schema_code: auditJson.audit_level === "szint2" ? (auditJson.schema_code || "") : "",
+    llms_txt: auditJson.audit_level === "szint2" ? (auditJson.llms_txt || "") : "",
     
     // Config (white-label)
     company_name: config.company_name || "WebLelet",
