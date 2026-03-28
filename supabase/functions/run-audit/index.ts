@@ -904,14 +904,15 @@ serve(async (req) => {
       compliance_grade: complianceScan.grade,
     });
 
-    // 4.5. PARTNER DATA + MODULES kiolvasás DB-ből
+    // 4.5. PARTNER DATA + MODULES + EMAIL kiolvasás DB-ből
     const { data: auditRow } = await supabase
       .from("audits")
-      .select("partner_data, modules")
+      .select("partner_data, modules, email")
       .eq("id", auditId)
       .single();
     const partnerData = auditRow?.partner_data || null;
     const modules = auditRow?.modules || null;
+    const auditEmail = auditRow?.email || null;
 
     // 5. 13-AGENT LLM ANALYSIS (+4 Szint 2 agent ha van partner data)
     const domain = new URL(url).hostname.replace("www.", "");
@@ -1005,6 +1006,39 @@ serve(async (req) => {
       pdf_generated_at: new Date().toISOString(),
       processing_time_ms: Date.now() - startTime,
     });
+
+    // 11. MAKE.COM WEBHOOK — PDF kézbesítés értesítés
+    const makeWebhookUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+    if (makeWebhookUrl && auditEmail) {
+      try {
+        // Signed URL generálás (1 órás érvényesség)
+        const { data: signedUrlData } = await supabase.storage
+          .from("audit-pdfs")
+          .createSignedUrl(pdfFileName, 3600);
+
+        const pdfSignedUrl = signedUrlData?.signedUrl || null;
+
+        await fetch(makeWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            auditId,
+            email: auditEmail,
+            domain,
+            url,
+            audit_level,
+            pdf_signed_url: pdfSignedUrl,
+            pdf_path: pdfFileName,
+            geo_score: geoScore,
+            marketing_score: marketingScore,
+            compliance_score: complianceScan.overall_score,
+            compliance_grade: complianceScan.grade,
+          }),
+        });
+      } catch (webhookErr) {
+        console.error("Make.com webhook hiba (nem kritikus):", (webhookErr as Error).message);
+      }
+    }
 
     return new Response(JSON.stringify({ success: true, auditId }), { status: 200 });
 

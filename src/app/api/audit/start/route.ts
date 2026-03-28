@@ -6,7 +6,7 @@ import type { AuditLevel } from "@/lib/types";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { url, client_id, audit_level, modules, business_type, partner_data } = body;
+    const { url, client_id, audit_level, modules, business_type, partner_data, email } = body;
 
     if (!url) {
       return NextResponse.json({ error: "URL megadása kötelező" }, { status: 400 });
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
         status: "pending",
         modules: selectedModules,
         partner_data: partner_data || null,
+        email: email || null,
       })
       .select("id")
       .single();
