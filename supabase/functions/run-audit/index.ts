@@ -424,6 +424,17 @@ Válasz: {"findings": [], "platform_scores": {"google_ai": 0-100, "chatgpt": 0-1
 Te a technikai SEO agent vagy. A technicalScan TÉNYEKET tartalmaz — ezekből generálj RÉSZLETES findings-eket.
 Ellenőrizd: canonical URL (dev domain? www vs non-www?), meta title/description (hossz, minőség), sitemap, robots.txt, heading struktúra, kép alt textek, OG tagek, GA4/GTM, HTTPS.
 Adj 2-4 finding-et a LEGSÚLYOSABB technikai problémákról. Minden finding-nek legyen evidence (MIT LÁTSZ a scan-ben), why_problem, business_impact, fix és fix_effort.
+
+EVIDENCE KÖTELEZŐ FORMÁTUM — NE általánosíts, a tényleges technicalScan értékeket másold be:
+• Meta title → evidence: "Detektált: \'[meta_title.content]\' — [meta_title.length] karakter" (ha üres: "nem található")
+• Meta description → evidence: ha found=false → "nem található a HTML forráskódban" | ha found=true → tartalom + hossz karakterben
+• H1/H2 → evidence: "H1: [headings.h1] db | H2: [headings.h2] db | H3: [headings.h3] db"
+• Canonical → evidence: "Canonical URL: [canonical.url || \'nincs canonical tag a <head>-ben\']"
+• Képek → evidence: "[images.withoutAlt] / [images.total] képből hiányzik az alt szöveg"
+• Sitemap → evidence: "sitemap.xml: HTTP [sitemap.statusCode || \'nem elérhető\']"
+• Robots.txt → evidence: "robots.txt: [robots_txt.found ? \'elérhető\' : \'nem elérhető (404)\']"
+• OG tagek → evidence: "[open_graph.tags.join(\', \') || \'egyetlen OG tag sem található\']"
+Ha nincs adat → evidence: "[típus]: az automatikus scan nem tudta mérni"
 Válasz: {"findings": [...]}`,
 
   "geo-content": `${GLOBAL_RULES}
@@ -471,9 +482,28 @@ Te a marketing technikai agent vagy. Elemezd az analytics infrastruktúrát (GA4
 Válasz: {"findings": [...], "technical_marketing_score": 0-100}`,
 
   "compliance-findings": `${GLOBAL_RULES}
-Te a jogi compliance findings agent vagy. A complianceScan TÉNYEKET tartalmaz (43 pont pass/fail). A te feladatod SZÖVEGET adni a legfontosabb hibákhoz.
-A 2-4 LEGSÚLYOSABB compliance hibából generálj findings-eket magyar jogi kontextussal. Evidence: mi hiányzik konkrétan. Why_problem: miért jelent kockázatot. Fix: konkrét lépések.
-ÁSZF-nél feltételes mód: "szükséges lehet" NEM "köteles".
+Te a jogi compliance findings agent vagy. A complianceScan pass/fail adatait és a cookie_consent_from_tech_scan mezőt kapod.
+
+COMPLIANCE STÁTUSZ SZABÁLYOK (KÖTELEZŐ):
+Minden compliance finding evidence mezőjébe az alábbi státusz jelölések egyikét KÖTELEZŐ használni:
+✅ DETEKTÁLT — ha az automatikus scan egyértelműen megtalálta
+❌ NEM DETEKTÁLT — ha az automatikus scan nem találta a HTML-ben
+🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL — ha a scan nem tudja biztonsággal megállapítani
+
+TILOS: erős ítéletek mint "jogsértés", "kötelező bírság", "súlyos mulasztás"
+HELYETTE: "a jogi előírások szerint szükséges lehet", "kockázatot hordoz", "manuális ellenőrzést igényel"
+ÁSZF/impresszum: "szükséges lehet" NEM "köteles"
+
+COOKIE KONZISZTENCIA (KÖTELEZŐ — NINCS KIVÉTEL):
+A cookie_consent_from_tech_scan.found az EGYETLEN hiteles forrás a cookie státuszhoz:
+• found === true → evidence: "✅ DETEKTÁLT ([provider])" — severity max KÖZEPES, téma: granularitás és visszavonás ellenőrzése
+• found === false → evidence: "❌ NEM DETEKTÁLT — automatikus HTML scan alapján" — severity: MAGAS
+TILOS a complianceScan más mezői alapján eltérő cookie státuszt adni. Csak a cookie_consent_from_tech_scan.found számít.
+
+PCI DSS finding: CSAK ha van bizonyíték fizetési formra (Stripe, PayPal, SimplePay, Barion) → egyébként: "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL (az oldalon nem azonosítható fizetési rendszer)"
+CAN-SPAM finding: CSAK ha van bizonyíték email marketing rendszerre → egyébként: "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL"
+
+A 2-4 LEGSÚLYOSABB compliance hiányból generálj findings-eket. Evidence = státusz jelölés + mi nem található konkrétan.
 Válasz: {"findings": [...]}`,
 
   "synthesis-strengths": `${GLOBAL_RULES}
@@ -682,7 +712,7 @@ async function runAllAgents(
     callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName }, al),
     callAgent("market-content", { html: rawHtml.substring(0, 5000), technicalScan, businessType }, al),
     callAgent("market-technical", { technicalScan, businessType }, al),
-    callAgent("compliance-findings", { complianceScan, businessType }, al),
+    callAgent("compliance-findings", { complianceScan, businessType, cookie_consent_from_tech_scan: technicalScan.cookie_consent }, al),
   ]);
   
   for (const r of [r1, r2, r3, r4, r5, r6, r7, r8]) {
@@ -859,6 +889,39 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     // Compliance részletek
     compliance_categories: auditJson.compliance_categories || [],
     
+    // Score methodology — 5×20% transzparens bontás
+    score_methodology: (() => {
+      const ts = auditJson.technical_scan || {};
+      const cs = auditJson.compliance_scan || {};
+      const techBase = Math.round(((ts.https ? 1 : 0) + (ts.canonical?.found ? 1 : 0) + (ts.robots_txt?.found ? 1 : 0) + (ts.sitemap?.found ? 1 : 0) + (ts.viewport ? 1 : 0)) / 5 * 100);
+      const onPage = Math.round(((ts.meta_title?.found ? 1 : 0) + (ts.meta_description?.found ? 1 : 0) + ((ts.headings?.h1 || 0) >= 1 ? 1 : 0) + ((ts.images?.total || 0) === 0 || ((ts.images?.withAlt || 0) / Math.max(ts.images?.total || 1, 1)) >= 0.8 ? 1 : 0)) / 4 * 100);
+      const local = Math.round(((ts.schema_markup?.found ? 1 : 0) + (ts.ga4 || ts.gtm ? 1 : 0) + (ts.lang_attr ? 1 : 0)) / 3 * 100);
+      const social = Math.round(((ts.open_graph?.found ? 1 : 0) + (ts.favicon ? 1 : 0)) / 2 * 100);
+      const comp = cs.overall_score || 0;
+      const c = (s: number) => s < 40 ? "fill-red" : s < 75 ? "fill-yellow" : "fill-green";
+      return [
+        { label: "Technikai alapok", weight: 20, score: techBase, color: c(techBase) },
+        { label: "On-page optimalizálás", weight: 20, score: onPage, color: c(onPage) },
+        { label: "Helyi jelzések & schema", weight: 20, score: local, color: c(local) },
+        { label: "Social preview (OG)", weight: 20, score: social, color: c(social) },
+        { label: "Compliance alap", weight: 20, score: comp, color: c(comp) },
+      ];
+    })(),
+
+    // Compliance framework státusz — detektált / nem detektált / manuális
+    compliance_frameworks: (() => {
+      const ts = auditJson.technical_scan || {};
+      const cs = auditJson.compliance_scan || {};
+      const cf = (s: string, c: string) => ({ status: s, cls: c });
+      return [
+        { name: "Cookie hozzájárulás", ...cf(ts.cookie_consent?.found ? `✅ DETEKTÁLT (${ts.cookie_consent?.provider || "azonosítva"})` : "❌ NEM DETEKTÁLT", ts.cookie_consent?.found ? "cf-ok" : "cf-fail") },
+        { name: "GDPR / Adatvédelem", ...cf((cs.gdpr?.passedPoints || 0) >= 5 ? "✅ DETEKTÁLT" : (cs.gdpr?.passedPoints || 0) >= 2 ? "🔍 RÉSZLEGES" : "❌ NEM DETEKTÁLT", (cs.gdpr?.passedPoints || 0) >= 5 ? "cf-ok" : (cs.gdpr?.passedPoints || 0) >= 2 ? "cf-warn" : "cf-fail") },
+        { name: "Magyar jogi dok. (ÁSZF, impresszum)", ...cf((cs.hungarian?.passedPoints || 0) >= 3 ? "🔍 RÉSZBEN DETEKTÁLT" : "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL", (cs.hungarian?.passedPoints || 0) >= 3 ? "cf-warn" : "cf-manual") },
+        { name: "Akadálymentesség (WCAG)", ...cf("🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL", "cf-manual") },
+        { name: "Fizetési / PCI DSS", ...cf((cs.pci?.passedPoints || 0) >= 4 ? "✅ MEGFELEL" : "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL", (cs.pci?.passedPoints || 0) >= 4 ? "cf-ok" : "cf-manual") },
+      ];
+    })(),
+
     // Technikai mellékletek — szint1-ben üres (upsell hook), szint2-ben valódi kód
     schema_code: auditJson.audit_level === "szint2" ? (auditJson.schema_code || "") : "",
     llms_txt: auditJson.audit_level === "szint2" ? (auditJson.llms_txt || "") : "",

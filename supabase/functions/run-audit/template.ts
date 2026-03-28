@@ -5,7 +5,7 @@ export const PDF_TEMPLATE = `<!DOCTYPE html>
 <style>
 /* ══════════════════════════════════════════════════════════
    WebLelet — PDFBolt Template v1.0  (Handlebars + Chrome PDF)
-   8 oldal, A4, sötét navy borító, DejaVu-kompatibilis design
+   5 oldal, A4, sötét navy borító, DejaVu-kompatibilis design
    ══════════════════════════════════════════════════════════ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -415,7 +415,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
     {{/each}}
   </div>
 
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 1 / 8</div>
+  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 1 / 5</div>
 </div>
 
 
@@ -466,7 +466,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
   </div>
   {{/each}}
 
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 2 / 8</div>
+  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 2 / 5</div>
 </div>
 
 
@@ -521,372 +521,207 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
     {{/each}}
   </div>
 
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 3 / 8</div>
+  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 3 / 5</div>
 </div>
 
 
 <!-- ══════════════════════════════════════════
-     OLDAL 4: GEO SCORECARD
+     OLDAL 4: COMBINED SCORECARD + METHODOLOGY
      ══════════════════════════════════════════ -->
 <div class="page">
 
   <div class="two-col-65">
+    <!-- LEFT: GEO + Marketing kategóriák kompakt -->
     <div>
-      <h2 class="section-title">GEO / SEO Részletes Scorecard</h2>
-
+      <h2 class="section-title" style="font-size:13px;">GEO / SEO Scorecard</h2>
       {{#each geo_categories}}
-      <div class="score-bar-row">
-        <div class="sb-header">
-          <span class="sb-name">{{name}}</span>
-          <span class="sb-score {{color}}">{{score}}</span>
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <span style="font-size:10px;color:#334155;font-weight:600;">{{name}}</span>
+          <span style="font-size:11px;font-weight:bold;color:#162440;">{{score}}</span>
         </div>
-        <div class="sb-track">
-          <div class="sb-fill {{color}}" style="width: {{score}}%;"></div>
+        <div style="background:#e8ecf0;border-radius:3px;height:6px;">
+          <div class="sb-fill {{color}}" style="width:{{score}}%;height:6px;border-radius:3px;"></div>
         </div>
-        <p class="sb-detail">
-          <span class="ok">✓</span> {{boost}}
-          &nbsp;·&nbsp;
-          <span class="bad">✗</span> {{drag}}
-          &nbsp;·&nbsp;
-          <span class="fix">⚡</span> {{quick_fix}}
+        <p style="font-size:8.5px;color:#64748b;margin-top:2px;line-height:1.4;">
+          <span style="color:#27ae60;">✓</span> {{boost}} &nbsp;·&nbsp; <span style="color:#e74c3c;">✗</span> {{drag}}
         </p>
       </div>
       {{/each}}
 
-      {{#unless geo_categories}}
-      <!-- Fallback ha nincs kategória bontás -->
-      <div class="score-bar-row">
-        <div class="sb-header">
-          <span class="sb-name">GEO / SEO összesített</span>
-          <span class="sb-score {{geo_color}}">{{geo_score}}</span>
-        </div>
-        <div class="sb-track">
-          <div class="sb-fill {{geo_color}}" style="width: {{geo_score}}%;"></div>
-        </div>
-      </div>
-      {{/unless}}
-    </div>
-
-    <div>
-      <h2 class="section-title" style="font-size:14px;">Leggyorsabb javítások</h2>
-      {{#each fastest_fixes}}
-      <div class="list-item blue" style="margin-bottom:12px;">
-        <span class="li-bullet" style="color:#2563eb;font-size:16px;">→</span>
-        <span style="font-size:10.5px;color:#334155;line-height:1.5;">{{this}}</span>
-      </div>
-      {{/each}}
-
-      <div style="margin-top:20px;padding:14px;background:#f8fafc;border-radius:6px;">
-        <p style="font-size:10px;font-weight:bold;color:#162440;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">GEO összesítés</p>
-        <p style="font-size:28px;font-weight:bold;color:#162440;text-align:center;">{{geo_score}}<span style="font-size:14px;color:#64748b;">/100</span></p>
-        <div style="background:#e8ecf0;border-radius:3px;height:10px;margin:8px 0;">
-          <div style="background:{{#if (gte geo_score 70)}}#27ae60{{else}}{{#if (gte geo_score 45)}}#e67e22{{else}}#e74c3c{{/if}}{{/if}};width:{{geo_score}}%;height:10px;border-radius:3px;"></div>
-        </div>
-        <p style="font-size:9px;color:#64748b;text-align:center;">
-          {{#if (gte geo_score 70)}}Jó teljesítmény{{else}}{{#if (gte geo_score 45)}}Fejlesztendő{{else}}Kritikus állapot{{/if}}{{/if}}
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 4 / 8</div>
-</div>
-
-
-<!-- ══════════════════════════════════════════
-     OLDAL 5: MARKETING + COMPLIANCE
-     ══════════════════════════════════════════ -->
-<div class="page">
-
-  <div class="two-col">
-    <div>
-      <h2 class="section-title">Marketing Scorecard</h2>
-
+      <h2 class="section-title" style="font-size:13px;margin-top:14px;">Marketing Scorecard</h2>
       {{#each marketing_categories}}
-      <div class="score-bar-row">
-        <div class="sb-header">
-          <span class="sb-name">{{name}}</span>
-          <span class="sb-score {{color}}">{{score}}</span>
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <span style="font-size:10px;color:#334155;font-weight:600;">{{name}}</span>
+          <span style="font-size:11px;font-weight:bold;color:#162440;">{{score}}</span>
         </div>
-        <div class="sb-track">
-          <div class="sb-fill {{color}}" style="width: {{score}}%;"></div>
+        <div style="background:#e8ecf0;border-radius:3px;height:6px;">
+          <div class="sb-fill {{color}}" style="width:{{score}}%;height:6px;border-radius:3px;"></div>
         </div>
-        <p class="sb-detail">
-          <span class="ok">✓</span> {{boost}}
-          &nbsp;·&nbsp;
-          <span class="bad">✗</span> {{drag}}
+        <p style="font-size:8.5px;color:#64748b;margin-top:2px;line-height:1.4;">
+          <span style="color:#27ae60;">✓</span> {{boost}} &nbsp;·&nbsp; <span style="color:#e74c3c;">✗</span> {{drag}}
         </p>
       </div>
       {{/each}}
-
-      {{#unless marketing_categories}}
-      <div class="score-bar-row">
-        <div class="sb-header">
-          <span class="sb-name">Marketing összesített</span>
-          <span class="sb-score {{marketing_color}}">{{marketing_score}}</span>
-        </div>
-        <div class="sb-track">
-          <div class="sb-fill {{marketing_color}}" style="width: {{marketing_score}}%;"></div>
-        </div>
-      </div>
-      {{/unless}}
-
-      <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:6px;text-align:center;">
-        <p style="font-size:9px;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Marketing összesítés</p>
-        <p style="font-size:28px;font-weight:bold;color:#162440;">{{marketing_score}}<span style="font-size:14px;color:#64748b;">/100</span></p>
-      </div>
     </div>
 
+    <!-- RIGHT: Score methodology + Compliance státusz -->
     <div>
-      <h2 class="section-title">Jogi Compliance</h2>
-
-      <!-- Compliance overall -->
-      <div style="text-align:center;margin-bottom:16px;padding:14px;background:#f8fafc;border-radius:6px;">
-        <p style="font-size:9px;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Összesített értékelés</p>
-        <p style="font-size:36px;font-weight:bold;color:{{compliance_color}};">{{compliance_grade}}</p>
-        <p style="font-size:14px;font-weight:bold;color:#162440;">{{compliance_score}}/100</p>
-        <div style="background:#e8ecf0;border-radius:3px;height:8px;margin:8px 0;">
-          <div style="background:{{compliance_color}};width:{{compliance_score}}%;height:8px;border-radius:3px;"></div>
+      <!-- Score methodology box -->
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Pontszám módszertan (5×20%)</p>
+        {{#each score_methodology}}
+        <div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+            <span style="font-size:9px;color:#475569;">{{label}}</span>
+            <span style="font-size:9px;font-weight:bold;color:#162440;">{{score}}/100 &nbsp;<span style="font-size:8px;color:#94a3b8;">({{weight}}%)</span></span>
+          </div>
+          <div style="background:#e8ecf0;border-radius:2px;height:5px;">
+            <div class="sb-fill {{color}}" style="width:{{score}}%;height:5px;border-radius:2px;"></div>
+          </div>
         </div>
+        {{/each}}
+        <p style="font-size:8px;color:#94a3b8;margin-top:8px;border-top:1px solid #e2e8f0;padding-top:6px;">Az összesített pontszám a 3 terület súlyozott átlaga.</p>
       </div>
 
-      <!-- Compliance framework rows -->
-      <div style="margin-bottom:8px;">
-        <p style="font-size:10px;font-weight:bold;color:#162440;margin-bottom:8px;">Framework bontás</p>
-        <div class="compliance-row">
-          <span class="cr-name">GDPR / Adatvédelem</span>
-          <span class="cr-badge {{#if (gte compliance_score 60)}}cr-pass{{else}}cr-fail{{/if}}">
-            {{#if (gte compliance_score 60)}}PASS{{else}}FAIL{{/if}}
-          </span>
-        </div>
-        <div class="compliance-row">
-          <span class="cr-name">Magyar jogszabályok</span>
-          <span class="cr-badge cr-warn">ELLENŐRIZ</span>
-        </div>
-        <div class="compliance-row">
-          <span class="cr-name">Akadálymentesség</span>
-          <span class="cr-badge cr-warn">ELLENŐRIZ</span>
-        </div>
-        <div class="compliance-row">
-          <span class="cr-name">Cookie hozzájárulás</span>
-          <span class="cr-badge {{#if (gte compliance_score 50)}}cr-pass{{else}}cr-fail{{/if}}">
-            {{#if (gte compliance_score 50)}}PASS{{else}}FAIL{{/if}}
-          </span>
-        </div>
-      </div>
-
-      <div style="margin-top:14px;padding:10px;background:#fff8f3;border:1px solid #fed7aa;border-radius:6px;">
-        <p style="font-size:9.5px;color:#92400e;line-height:1.6;">
-          ⚠ A compliance értékelés automatikus scan alapján készül. Részletes jogi átvizsgáláshoz fordulj szakértőhöz.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 5 / 8</div>
-</div>
-
-
-<!-- ══════════════════════════════════════════
-     OLDAL 6: KÖVETKEZŐ LÉPÉSEK + SCHEMA START
-     ══════════════════════════════════════════ -->
-<div class="page">
-
-  <h2 class="section-title">Következő lépések</h2>
-
-  <!-- CTA box -->
-  <div class="cta-box">
-    <h3>Kérsz segítséget a javításban?</h3>
-    <p>Az audit megmutatja a problémákat — mi meg tudjuk oldani őket.<br/>
-    Vedd fel velünk a kapcsolatot és megbeszéljük a lehetőségeket.</p>
-    <p class="cta-email">{{contact_email}}</p>
-    {{#if contact_website}}
-    <p style="font-size:11px;color:#94a3b8;margin-top:6px;">{{contact_website}}</p>
-    {{/if}}
-  </div>
-
-  <!-- Leggyorsabb javítások -->
-  <div style="margin-bottom:20px;">
-    <p style="font-size:13px;font-weight:bold;color:#162440;margin-bottom:12px;">Az 5 leggyorsabb javítás (mind elvégezhető 1 héten belül)</p>
-    {{#each fastest_fixes}}
-    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding:8px 12px;background:#f8fafc;border-radius:4px;">
-      <span style="background:#162440;color:white;font-size:11px;font-weight:bold;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;flex-shrink:0;">{{@indexPlusOne}}</span>
-      <span style="font-size:10.5px;color:#334155;line-height:1.5;">{{this}}</span>
-    </div>
-    {{/each}}
-  </div>
-
-  <!-- Schema kód start -->
-  {{#if schema_code}}
-  <h2 class="section-title">Kész megoldás: Schema Markup (JSON-LD)</h2>
-  <p style="font-size:10px;color:#64748b;margin-bottom:10px;">
-    Másold be a weboldalad <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">&lt;head&gt;</code> szekciójába, vagy add át a fejlesztődnek.
-    Tesztelés: <strong>search.google.com/test/rich-results</strong>
-  </p>
-  <div class="code-block">{{schema_code}}</div>
-  {{else}}
-  <div style="padding:20px 24px;background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #bfdbfe;border-radius:8px;margin-top:8px;">
-    <p style="font-size:11px;font-weight:bold;color:#1d4ed8;margin-bottom:6px;">🔒 Schema Markup (JSON-LD) — Szint 2 funkcó</p>
-    <p style="font-size:10.5px;color:#334155;line-height:1.7;margin-bottom:10px;">
-      Az audit azonosította, hogy a <strong>strukturált adatok hiányoznak vagy hiányosak</strong> az oldaladon.
-      Szint 2 auditban kapsz egy <strong>kész, másolható JSON-LD kódot</strong> — csak be kell illeszteni a weboldalba,
-      vagy átadni a fejlesztőnek. Google Rich Results tesztelés inclúdált.
-    </p>
-    <p style="font-size:10px;color:#1d4ed8;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
-  </div>
-  {{/if}}
-
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 6 / 8</div>
-</div>
-
-
-<!-- ══════════════════════════════════════════
-     OLDAL 7: LLMS.TXT
-     ══════════════════════════════════════════ -->
-<div class="page">
-
-  {{#if llms_txt}}
-  <h2 class="section-title">Kész megoldás: llms.txt — AI keresők számára</h2>
-  <p style="font-size:10px;color:#64748b;margin-bottom:10px;">
-    Hozz létre egy <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">llms.txt</code> fájlt és töltsd fel ide:
-    <strong>https://{{domain}}/llms.txt</strong>
-  </p>
-  <div class="code-block">{{llms_txt}}</div>
-  {{else}}
-  <div style="padding:20px 24px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:8px;margin-bottom:20px;">
-    <p style="font-size:11px;font-weight:bold;color:#15803d;margin-bottom:6px;">🔒 llms.txt fájl generálás — Szint 2 funkció</p>
-    <p style="font-size:10.5px;color:#334155;line-height:1.7;margin-bottom:10px;">
-      Az AI keresők (ChatGPT, Perplexity, Google AI) számára optimalizált <strong>kész llms.txt fájl</strong>
-      — a te weboldaladra szabva, másolásra készen — Szint 2 auditban szerepel.
-      Ez az a fájl, ami segít abban, hogy az AI keresők pontosan mutassák be a vállalkozásodat.
-    </p>
-    <p style="font-size:10px;color:#15803d;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
-  </div>
-  {{/if}}
-
-  <!-- AI Platform megjegyzés -->
-  <div style="margin-top:20px;padding:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;">
-    <p style="font-size:11px;font-weight:bold;color:#1d4ed8;margin-bottom:6px;">Az AI keresők szerepéről</p>
-    <p style="font-size:10.5px;color:#334155;line-height:1.6;">
-      Az AI keresők (ChatGPT, Perplexity, Google AI Overviews) szerepe növekvő, de a hagyományos Google keresés
-      és az online foglalhatóság / vásárlás lehetősége még mindig a fő bevételi csatorna. Az AI optimalizálás
-      hosszú távú befektetés — az azonnali javítások (foglalás, jogi dokumentumok, technikai SEO) fontosabbak.
-    </p>
-  </div>
-
-  <!-- Technikai összefoglaló -->
-  <div style="margin-top:20px;">
-    <h3 style="font-size:13px;font-weight:bold;color:#162440;margin-bottom:12px;">Technikai részletek</h3>
-    <div class="two-col">
+      <!-- Compliance státusz tábla -->
       <div>
-        <p style="font-size:10px;font-weight:bold;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Mit vizsgált az audit</p>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> Canonical URL és domain konzisztencia</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> Meta title és description</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> Sitemap.xml és robots.txt</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> Schema markup (JSON-LD)</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> HTTPS / SSL tanúsítvány</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> Heading struktúra (H1/H2/H3)</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> Kép alt szövegek</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> Open Graph tagek</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#27ae60;">✓</span> GA4 / GTM analytics</div>
-      </div>
-      <div>
-        <p style="font-size:10px;font-weight:bold;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Jogi compliance ellenőrzés</p>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> GDPR / Adatvédelmi tájékoztató</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> Cookie banner és hozzájárulás</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> Impresszum / Céginformáció</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> ÁSZF (Általános Szerz. Feltételek)</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> Magyar fogyasztóvédelmi jogszabályok</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> Elérhetőség (akadálymentesség)</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> PCI DSS (fizetési biztonság)</div>
-        <div style="display:flex;gap:6px;margin-bottom:5px;font-size:10px;color:#475569;"><span style="color:#2563eb;">→</span> CAN-SPAM (email marketing)</div>
+        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Jogi Compliance státusz</p>
+        <div style="margin-bottom:6px;padding:8px 10px;background:#f8fafc;border-radius:4px;text-align:center;">
+          <span style="font-size:22px;font-weight:bold;color:#162440;">{{compliance_score}}/100</span>
+          <span style="font-size:16px;font-weight:bold;color:#2563eb;margin-left:8px;">{{compliance_grade}}</span>
+        </div>
+        {{#each compliance_frameworks}}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
+          <span style="font-size:9px;color:#334155;flex:1;">{{name}}</span>
+          <span style="font-size:8.5px;font-weight:600;text-align:right;flex-shrink:0;max-width:55%;">{{status}}</span>
+        </div>
+        {{/each}}
+        <div style="margin-top:10px;padding:8px;background:#fff8f3;border:1px solid #fed7aa;border-radius:4px;">
+          <p style="font-size:8.5px;color:#92400e;line-height:1.5;">⚠ Automatikus scan — tényleges jogi megfelelőséghez szakértői átvizsgálás szükséges.</p>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 7 / 8</div>
+  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 4 / 5</div>
 </div>
 
 
 <!-- ══════════════════════════════════════════
-     OLDAL 8: ZÁRÓLAP
+     OLDAL 5: SCHEMA/LLMS UPSELL + CTA + ZÁRÓ
      ══════════════════════════════════════════ -->
 <div class="page">
 
-  <h2 class="section-title">Összefoglaló pontszámok</h2>
-
-  <!-- Score summary table -->
-  <table class="score-table" style="margin-bottom:24px;">
-    <thead>
-      <tr>
-        <th>Terület</th>
-        <th>Pontszám</th>
-        <th>Értékelés</th>
-        <th>Fő probléma</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>GEO / SEO</td>
-        <td class="td-score {{geo_color}}">{{geo_score}}/100</td>
-        <td>{{#if (gte geo_score 70)}}✅ Jó{{else}}{{#if (gte geo_score 45)}}⚠️ Fejlesztendő{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
-        <td style="font-size:10px;">{{#if biggest_gaps}}{{lookup biggest_gaps 0}}{{/if}}</td>
-      </tr>
-      <tr>
-        <td>Marketing</td>
-        <td class="td-score {{marketing_color}}">{{marketing_score}}/100</td>
-        <td>{{#if (gte marketing_score 70)}}✅ Jó{{else}}{{#if (gte marketing_score 45)}}⚠️ Fejlesztendő{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
-        <td style="font-size:10px;">{{#if biggest_gaps}}{{lookup biggest_gaps 1}}{{/if}}</td>
-      </tr>
-      <tr>
-        <td>Compliance</td>
-        <td class="td-score {{compliance_color}}">{{compliance_score}}/100</td>
-        <td>{{compliance_grade}} — {{#if (gte compliance_score 75)}}✅ Megfelelő{{else}}{{#if (gte compliance_score 40)}}⚠️ Hiányos{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
-        <td style="font-size:10px;">{{#if biggest_gaps}}{{lookup biggest_gaps 2}}{{/if}}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- Branding block -->
-  <div style="text-align:center;padding:28px;background:#162440;border-radius:10px;margin-bottom:20px;">
-    <p style="font-size:22px;font-weight:bold;color:white;margin-bottom:6px;">{{company_name}}</p>
-    <p style="font-size:11px;color:#aab4c8;margin-bottom:16px;">AI-alapú weboldal diagnosztika — Gyors, pontos, cselekvésre kész</p>
-    <p style="font-size:13px;color:#60a5fa;margin-bottom:6px;">{{contact_email}}</p>
-    {{#if contact_website}}
-    <p style="font-size:12px;color:#94a3b8;">{{contact_website}}</p>
-    {{/if}}
-  </div>
-
-  <!-- Audit summary info -->
-  <div style="display:flex;gap:16px;margin-bottom:20px;">
-    <div style="flex:1;padding:12px;background:#f8fafc;border-radius:6px;text-align:center;">
-      <p style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Vizsgált oldal</p>
-      <p style="font-size:12px;font-weight:bold;color:#162440;">{{domain}}</p>
+  <!-- Schema + llms.txt — szint1: upsell | szint2: kód -->
+  <div style="display:flex;gap:16px;margin-bottom:16px;">
+    <div style="flex:1;">
+      {{#if schema_code}}
+      <h2 class="section-title" style="font-size:13px;">Kész megoldás: Schema Markup (JSON-LD)</h2>
+      <p style="font-size:9.5px;color:#64748b;margin-bottom:8px;">Másold be a <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">&lt;head&gt;</code> szekciódba, vagy add át a fejlesztőnek. Teszt: search.google.com/test/rich-results</p>
+      <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{schema_code}}</div>
+      {{else}}
+      <div style="padding:14px 16px;background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #bfdbfe;border-radius:8px;height:100%;">
+        <p style="font-size:11px;font-weight:bold;color:#1d4ed8;margin-bottom:6px;">🔒 Schema Markup (JSON-LD) — Szint 2</p>
+        <p style="font-size:9.5px;color:#334155;line-height:1.6;margin-bottom:8px;">Az audit azonosította, hogy strukturált adatok hiányoznak. Szint 2 auditban kapsz kész, másolható JSON-LD kódot — a te üzlettípusodra szabva.</p>
+        <p style="font-size:9px;color:#1d4ed8;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
+      </div>
+      {{/if}}
     </div>
-    <div style="flex:1;padding:12px;background:#f8fafc;border-radius:6px;text-align:center;">
-      <p style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Audit dátuma</p>
-      <p style="font-size:12px;font-weight:bold;color:#162440;">{{date}}</p>
-    </div>
-    <div style="flex:1;padding:12px;background:#f8fafc;border-radius:6px;text-align:center;">
-      <p style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Üzlettípus</p>
-      <p style="font-size:12px;font-weight:bold;color:#162440;">{{business_type}}</p>
-    </div>
-    <div style="flex:1;padding:12px;background:#f8fafc;border-radius:6px;text-align:center;">
-      <p style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Szint</p>
-      <p style="font-size:12px;font-weight:bold;color:#162440;">{{audit_level}}</p>
+    <div style="flex:1;">
+      {{#if llms_txt}}
+      <h2 class="section-title" style="font-size:13px;">Kész megoldás: llms.txt</h2>
+      <p style="font-size:9.5px;color:#64748b;margin-bottom:8px;">Töltsd fel ide: <strong>https://{{domain}}/llms.txt</strong></p>
+      <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{llms_txt}}</div>
+      {{else}}
+      <div style="padding:14px 16px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:8px;height:100%;">
+        <p style="font-size:11px;font-weight:bold;color:#15803d;margin-bottom:6px;">🔒 llms.txt generálás — Szint 2</p>
+        <p style="font-size:9.5px;color:#334155;line-height:1.6;margin-bottom:8px;">AI keresőkre (ChatGPT, Perplexity, Google AI) optimalizált llms.txt fájl — a te weboldaladra szabva, másolásra készen.</p>
+        <p style="font-size:9px;color:#15803d;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
+      </div>
+      {{/if}}
     </div>
   </div>
 
-  <div class="disclaimer">
-    <strong>Jogi nyilatkozat:</strong> Ez az audit automatikus technológiai és compliance scan alapján készült, és tájékoztató jellegű.
-    Nem minősül jogi tanácsadásnak. A compliance-értékelés a nyilvánosan elérhető weblap-adatok vizsgálatán alapul —
-    a tényleges jogszabályi megfelelőség megítéléséhez szakértői átvizsgálás szükséges.
-    Az audit eredményei az audit időpontjában fennálló állapotot tükrözik.
-    Készítette: {{company_name}} · {{contact_website}}
+  <!-- CTA box + audit info -->
+  <div style="display:flex;gap:14px;margin-bottom:14px;">
+    <div style="flex:1.3;background:#162440;border-radius:8px;padding:16px 18px;">
+      <p style="font-size:14px;font-weight:bold;color:white;margin-bottom:6px;">{{company_name}}</p>
+      <p style="font-size:9.5px;color:#aab4c8;margin-bottom:10px;">AI-alapú weboldal diagnosztika — Gyors, pontos, cselekvésre kész</p>
+      <p style="font-size:11px;color:#60a5fa;margin-bottom:4px;">{{contact_email}}</p>
+      {{#if contact_website}}<p style="font-size:10px;color:#94a3b8;">{{contact_website}}</p>{{/if}}
+    </div>
+    <div style="flex:1;">
+      <!-- Score összefoglaló -->
+      <table style="width:100%;border-collapse:collapse;font-size:10px;">
+        <tr style="background:#f8fafc;">
+          <th style="padding:5px 8px;text-align:left;color:#64748b;font-weight:600;font-size:9px;">Terület</th>
+          <th style="padding:5px 8px;text-align:center;font-size:9px;color:#64748b;">Pont</th>
+          <th style="padding:5px 8px;text-align:center;font-size:9px;color:#64748b;">Értékelés</th>
+        </tr>
+        <tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:5px 8px;color:#334155;">GEO / SEO</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{geo_score}}/100</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{#if (gte geo_score 70)}}✅ Jó{{else}}{{#if (gte geo_score 45)}}⚠ Fejlesztendő{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:5px 8px;color:#334155;">Marketing</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{marketing_score}}/100</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{#if (gte marketing_score 70)}}✅ Jó{{else}}{{#if (gte marketing_score 45)}}⚠ Fejlesztendő{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 8px;color:#334155;">Compliance</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{compliance_score}}/100</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{compliance_grade}} — {{#if (gte compliance_score 75)}}✅ Megfelelő{{else}}{{#if (gte compliance_score 40)}}⚠ Hiányos{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
+        </tr>
+      </table>
+      <!-- Audit meta -->
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div style="flex:1;padding:6px 8px;background:#f8fafc;border-radius:4px;text-align:center;">
+          <p style="font-size:8px;color:#64748b;margin-bottom:2px;">Vizsgált oldal</p>
+          <p style="font-size:9.5px;font-weight:bold;color:#162440;">{{domain}}</p>
+        </div>
+        <div style="flex:1;padding:6px 8px;background:#f8fafc;border-radius:4px;text-align:center;">
+          <p style="font-size:8px;color:#64748b;margin-bottom:2px;">Dátum</p>
+          <p style="font-size:9.5px;font-weight:bold;color:#162440;">{{date}}</p>
+        </div>
+        <div style="flex:1;padding:6px 8px;background:#f8fafc;border-radius:4px;text-align:center;">
+          <p style="font-size:8px;color:#64748b;margin-bottom:2px;">Szint</p>
+          <p style="font-size:9.5px;font-weight:bold;color:#162440;">{{audit_level}}</p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="footer" style="border-top-color:#e0e0e0;">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 8 / 8</div>
+  <!-- Mit vizsgált az audit — kompakt 2 oszlopos lista -->
+  <div style="background:#f8fafc;border-radius:6px;padding:10px 14px;margin-bottom:12px;">
+    <p style="font-size:9px;font-weight:bold;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Mit vizsgált az audit</p>
+    <div style="display:flex;gap:20px;">
+      <div style="flex:1;">
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Canonical URL és domain konzisztencia</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Meta title és description</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Sitemap.xml és robots.txt</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Schema markup (JSON-LD)</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> HTTPS / SSL, heading struktúra</div>
+      </div>
+      <div style="flex:1;">
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> Open Graph tagek, kép alt szövegek</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> GA4 / GTM analytics</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> GDPR, Cookie hozzájárulás, impresszum</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> ÁSZF, Magyar jogszabályok</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> Marketing tartalom és CTA elemzés</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer" style="font-size:8px;">
+    <strong>Jogi nyilatkozat:</strong> Ez az audit automatikus technológiai és compliance scan alapján készült, és tájékoztató jellegű. Nem minősül jogi tanácsadásnak. A compliance értékelés nyilvánosan elérhető weblap-adatokon alapul — tényleges jogszabályi megfelelőséghez szakértői átvizsgálás szükséges. Készítette: {{company_name}} · {{contact_website}}
+  </div>
+
+  <div class="footer" style="border-top-color:#e0e0e0;">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 5 / 5</div>
 </div>
+
 
 </body>
 </html>`;
