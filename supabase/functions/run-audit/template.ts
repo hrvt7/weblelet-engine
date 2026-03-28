@@ -469,7 +469,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
   </div>
 
   <!-- 14 AI Crawler hozzáférés kompakt grid -->
-  <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">AI Crawler hozzáférés (robots.txt)</p>
+  <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">AI robot hozzáférés (robots.txt)</p>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
     {{#each ai_crawlers_list}}
     <div style="padding:3px 8px;border-radius:12px;font-size:8px;font-weight:600;background:{{bg}};color:{{fg}};">{{name}}: {{status_short}}</div>
@@ -587,7 +587,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
       <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
         <p style="font-size:9.5px;font-weight:bold;color:#3730a3;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">GEO Pontszám módszertana</p>
         <div style="font-size:8.5px;color:#475569;line-height:1.8;">
-          <div>🔵 <strong>AI Citability (25%)</strong> — crawler hozzáférés, llms.txt, passage</div>
+          <div>🔵 <strong>AI Citability (25%)</strong> — AI robot hozzáférés, llms.txt, passage</div>
           <div>🟡 <strong>Brand Authority (20%)</strong> — szerző, dátum, statisztikák</div>
           <div>🟢 <strong>Tartalom and E-E-A-T (20%)</strong> — meta, heading, alt, nyelv</div>
           <div>⚙️ <strong>Technikai alap (15%)</strong> — HTTPS, canonical, sitemap</div>
@@ -702,7 +702,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
     <p style="font-size:9px;font-weight:bold;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Mit vizsgált az audit</p>
     <div style="display:flex;gap:20px;">
       <div style="flex:1;">
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> 14 AI crawler hozzáférés (robots.txt)</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> 14 AI robot hozzáférés (robots.txt)</div>
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> llms.txt detektálás és tartalom</div>
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> Passage minőség (134–167 szó optimum)</div>
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> Entitás jelek: szerző, dátum, statisztikák</div>
