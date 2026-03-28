@@ -3,7 +3,8 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 import { PDF_TEMPLATE } from "./template.ts";
-import Handlebars from "https://esm.sh/handlebars@4.7.8";
+// @ts-ignore
+import Handlebars from "npm:handlebars";
 
 // ═══ TYPES ═══
 interface TechnicalScan {
@@ -807,7 +808,10 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
   // Server-side Handlebars rendering — PDFBolt /v1/direct does NOT process
   // Handlebars syntax when using the html (base64) field.
   // We render the template ourselves and send plain HTML to PDFBolt.
-  Handlebars.registerHelper("gte", function(a: number, b: number) { return a >= b; });
+  // Register helpers (idempotent — safe to call on warm isolate)
+  if (!Handlebars.helpers["gte"]) {
+    Handlebars.registerHelper("gte", function(a: number, b: number) { return a >= b; });
+  }
   const compiledTemplate = Handlebars.compile(PDF_TEMPLATE);
   const renderedHtml = compiledTemplate(templateData);
   const templateB64 = btoa(unescape(encodeURIComponent(renderedHtml)));
