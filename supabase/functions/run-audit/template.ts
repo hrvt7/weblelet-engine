@@ -597,14 +597,23 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
         <p style="font-size:7.5px;color:#6366f1;margin-top:8px;border-top:1px solid #c7d2fe;padding-top:6px;">Princeton/IIT Delhi GEO kutatás (KDD 24) + piaci standardok alapján.</p>
       </div>
       <div>
-        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Jogi Alapok</p>
-        {{#each compliance_frameworks}}
+        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">GEO Technikai Jelek</p>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
-          <span style="font-size:8.5px;color:#334155;flex:1;">{{name}}</span>
-          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:55%;">{{status}}</span>
+          <span style="font-size:8.5px;color:#334155;flex:1;">llms.txt</span>
+          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{llms_txt_label}}</span>
         </div>
-        {{/each}}
-        <p style="font-size:7.5px;color:#92400e;margin-top:8px;padding:6px 8px;background:#fff8f3;border-radius:4px;">Automatikus scan — jogi megfelelőséghez szakértői átvizsgálás szükséges.</p>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
+          <span style="font-size:8.5px;color:#334155;flex:1;">Perplexity láthatóság</span>
+          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{perplexity_label}}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
+          <span style="font-size:8.5px;color:#334155;flex:1;">Brand Authority jelek</span>
+          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{entity_label}}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;gap:6px;">
+          <span style="font-size:8.5px;color:#334155;flex:1;">Passage minőség</span>
+          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{passage_label}}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -626,8 +635,8 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
       <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{{schema_code}}}</div>
       {{else}}
       <div style="padding:14px 16px;background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #bfdbfe;border-radius:8px;height:100%;">
-        <p style="font-size:11px;font-weight:bold;color:#1d4ed8;margin-bottom:6px;">🔒 Schema Markup (JSON-LD) — Szint 2</p>
-        <p style="font-size:9.5px;color:#334155;line-height:1.6;margin-bottom:8px;">Az audit azonosította, hogy strukturált adatok hiányoznak. Szint 2 auditban kapsz kész, másolható JSON-LD kódot — a te üzlettípusodra szabva.</p>
+        <p style="font-size:11px;font-weight:bold;color:#1d4ed8;margin-bottom:6px;">🔒 Schema Markup (JSON-LD) — GEO PRO</p>
+        <p style="font-size:9.5px;color:#334155;line-height:1.6;margin-bottom:8px;">Az audit azonosította, hogy strukturált adatok hiányoznak. GEO PRO csomagban kapsz kész, másolható JSON-LD kódot — a te üzlettípusodra szabva.</p>
         <p style="font-size:9px;color:#1d4ed8;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
       </div>
       {{/if}}
@@ -639,8 +648,8 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
       <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{{llms_txt}}}</div>
       {{else}}
       <div style="padding:14px 16px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:8px;height:100%;">
-        <p style="font-size:11px;font-weight:bold;color:#15803d;margin-bottom:6px;">🔒 llms.txt generálás — Szint 2</p>
-        <p style="font-size:9.5px;color:#334155;line-height:1.6;margin-bottom:8px;">AI keresőkre (ChatGPT, Perplexity, Google AI) optimalizált llms.txt fájl — a te weboldaladra szabva, másolásra készen.</p>
+        <p style="font-size:11px;font-weight:bold;color:#15803d;margin-bottom:6px;">🔒 llms.txt generálás — GEO PRO</p>
+        <p style="font-size:9.5px;color:#334155;line-height:1.6;margin-bottom:8px;">GEO PRO csomagban kapsz AI keresőkre (ChatGPT, Perplexity, Google AI) optimalizált llms.txt fájlt — a te weboldaladra szabva, másolásra készen.</p>
         <p style="font-size:9px;color:#15803d;font-weight:bold;">→ Kérd a teljes auditot: {{contact_email}}</p>
       </div>
       {{/if}}
@@ -712,14 +721,14 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Schema markup (JSON-LD), OG tagek</div>
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Canonical, sitemap.xml, HTTPS</div>
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Meta title, description, heading struktúra</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Cookie hozzájárulás, GDPR alap</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Brand Authority jelek és entitás konsisztencia</div>
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> 5 AI platform readiness becslés</div>
       </div>
     </div>
   </div>
 
   <div class="disclaimer" style="font-size:8px;">
-    <strong>Megjegyzés:</strong> Ez az audit automatikus GEO readiness assessment — megmutatja az AI-idézhetőség felkészültségét, de nem garantálja a tényleges AI-citációkat. A Perplexity mérés valós API-lekérdezésen alapul. Compliance értékelés tájékoztató jellegű — tényleges megfelelőséghez szakértői átvizsgálás szükséges. Készítette: {{company_name}} · {{contact_website}}
+    <strong>Megjegyzés:</strong> Ez az audit automatikus GEO readiness assessment — megmutatja az AI-idézhetőség felkészültségét, de nem garantálja a tényleges AI-citációkat. A Perplexity mérés valós API-lekérdezésen alapul. Készítette: {{company_name}} · {{contact_website}}
   </div>
 
   <div class="footer" style="border-top-color:#e0e0e0;">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — GEO Audit: AI kereső láthatóság &nbsp;·&nbsp; 5 / 5</div>
