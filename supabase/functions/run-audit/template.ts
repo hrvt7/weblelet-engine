@@ -366,34 +366,39 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
 <div class="page dark">
 
   <div class="cover-header">
-    <p class="cover-brand">{{company_name}} &nbsp;·&nbsp; AI Weboldal Audit</p>
+    <p class="cover-brand">{{company_name}} &nbsp;·&nbsp; GEO Audit — AI Kereső Láthatóság</p>
     <h1 class="cover-domain">{{brand_name}}</h1>
     <p class="cover-subtitle">{{domain}}</p>
     <p class="cover-subtitle" style="color:#aab4c8;font-size:10px;">{{business_type}} &nbsp;|&nbsp; Audit szint: {{audit_level}}</p>
   </div>
 
-  <!-- SVG Score körök -->
+  <!-- SVG Score körök — GEO-first -->
   <div class="cover-circles">
-    <!-- GEO / SEO -->
+    <!-- GEO SCORE -->
     <svg width="130" height="155" viewBox="0 0 130 155">
-      <circle cx="65" cy="65" r="54" fill="#162440" stroke="#e74c3c" stroke-width="5"/>
-      <text x="65" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{geo_score}}</text>
-      <text x="65" y="118" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#aab4c8" letter-spacing="1">GEO /</text>
-      <text x="65" y="133" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#aab4c8">SEO</text>
+      <circle cx="65" cy="65" r="54" fill="#162440" stroke="#6366f1" stroke-width="5"/>
+      <text x="65" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{geo_score}}</text>
+      <text x="65" y="110" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#aab4c8" letter-spacing="1">GEO SCORE</text>
     </svg>
-    <!-- MARKETING -->
+    <!-- AI CITABILITY -->
     <svg width="130" height="155" viewBox="0 0 130 155">
-      <circle cx="65" cy="65" r="54" fill="#162440" stroke="#e67e22" stroke-width="5"/>
-      <text x="65" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{marketing_score}}</text>
-      <text x="65" y="118" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#aab4c8" letter-spacing="1">MARKETING</text>
+      <circle cx="65" cy="65" r="54" fill="#162440" stroke="#10b981" stroke-width="5"/>
+      <text x="65" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{ai_citability_score}}</text>
+      <text x="65" y="106" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#aab4c8">AI CITABILITY</text>
     </svg>
-    <!-- COMPLIANCE -->
+    <!-- BRAND AUTHORITY -->
     <svg width="130" height="155" viewBox="0 0 130 155">
-      <circle cx="65" cy="65" r="54" fill="#162440" stroke="#3b82f6" stroke-width="5"/>
-      <text x="65" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{compliance_score}}</text>
-      <text x="65" y="110" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#aab4c8" letter-spacing="1">COMPLIANCE</text>
-      <text x="65" y="126" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#60a5fa">{{compliance_grade}}</text>
+      <circle cx="65" cy="65" r="54" fill="#162440" stroke="#f59e0b" stroke-width="5"/>
+      <text x="65" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{brand_authority_score}}</text>
+      <text x="65" y="106" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#aab4c8">BRAND AUTH.</text>
     </svg>
+  </div>
+
+  <!-- Perplexity valós mérés badge -->
+  <div style="text-align:center;margin:-10px 0 14px 0;">
+    <span style="display:inline-block;padding:5px 14px;background:rgba(99,102,241,0.15);border:1px solid #6366f1;border-radius:20px;font-size:9.5px;color:#c7d2fe;">
+      Perplexity valós mérés: {{perplexity_label}}
+    </span>
   </div>
 
   <hr class="cover-divider"/>
@@ -420,53 +425,71 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
 
 
 <!-- ══════════════════════════════════════════
-     OLDAL 2: AMIT 2 PERCBEN TUDNIA KELL
+     OLDAL 2: AI PLATFORM DASHBOARD
      ══════════════════════════════════════════ -->
 <div class="page">
 
-  <h2 class="section-title">Amit 2 percben tudnia kell</h2>
+  <h2 class="section-title">Megtalál az AI? — Platform lefedettség</h2>
 
   <!-- Laikus összefoglaló -->
-  <div style="background:#f8fafc;border-left:4px solid #162440;border-radius:0 6px 6px 0;padding:14px 16px;margin-bottom:20px;">
-    <p style="font-size:11px;color:#334155;line-height:1.7;">{{layman_summary}}</p>
+  <div style="background:#f0f4ff;border-left:4px solid #6366f1;border-radius:0 6px 6px 0;padding:11px 14px;margin-bottom:16px;">
+    <p style="font-size:10.5px;color:#334155;line-height:1.6;">{{layman_summary}}</p>
   </div>
 
-  <!-- 3 összefoglaló doboz -->
-  <div class="summary-grid" style="margin-bottom:20px;">
-    <div class="summary-box green">
-      <p class="sb-label">GEO / SEO</p>
-      <p class="sb-value">{{geo_score}}</p>
-      <p class="sb-sub">/100 pont</p>
+  <!-- 5 platform score bars -->
+  <div style="margin-bottom:16px;">
+    <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">AI Platform Readiness (becsült)</p>
+    {{#each platform_scores_list}}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+      <span style="font-size:9.5px;color:#334155;font-weight:600;min-width:90px;">{{name}}</span>
+      <div style="flex:1;background:#e8ecf0;border-radius:3px;height:8px;">
+        <div class="sb-fill {{color}}" style="width:{{score}}%;height:8px;border-radius:3px;"></div>
+      </div>
+      <span style="font-size:10px;font-weight:bold;color:#162440;min-width:32px;text-align:right;">{{score}}</span>
     </div>
-    <div class="summary-box yellow">
-      <p class="sb-label">Marketing</p>
-      <p class="sb-value">{{marketing_score}}</p>
-      <p class="sb-sub">/100 pont</p>
+    {{/each}}
+    <p style="font-size:7.5px;color:#94a3b8;margin-top:4px;">* Becsült értékek technikai jelek alapján. Perplexity esetén valós mérés: {{perplexity_label}}</p>
+  </div>
+
+  <!-- 3 GEO kulcs-státusz doboz -->
+  <div style="display:flex;gap:10px;margin-bottom:16px;">
+    <div style="flex:1;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+      <p style="font-size:8px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">llms.txt</p>
+      <p style="font-size:10px;font-weight:bold;color:#162440;line-height:1.5;">{{llms_txt_label}}</p>
     </div>
-    <div class="summary-box red">
-      <p class="sb-label">Compliance</p>
-      <p class="sb-value">{{compliance_score}}</p>
-      <p class="sb-sub">{{compliance_grade}} értékelés</p>
+    <div style="flex:1;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+      <p style="font-size:8px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Passage minőség</p>
+      <p style="font-size:10px;font-weight:bold;color:#162440;line-height:1.5;">{{passage_label}}</p>
+    </div>
+    <div style="flex:1;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+      <p style="font-size:8px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Entitás jelek</p>
+      <p style="font-size:10px;font-weight:bold;color:#162440;line-height:1.5;">{{entity_label}}</p>
+      <p style="font-size:8px;color:#64748b;margin-top:3px;">Szerző: {{#if entity_has_author}}✅{{else}}❌{{/if}} &nbsp; Dátum: {{#if entity_has_date}}✅{{else}}❌{{/if}} &nbsp; Statisztika: {{#if entity_has_stats}}✅{{else}}❌{{/if}}</p>
     </div>
   </div>
 
-  <!-- Finding kártyák 1–2 (findings_p2 = slice(0,2) — no @second needed) -->
+  <!-- 14 AI Crawler hozzáférés kompakt grid -->
+  <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">AI Crawler hozzáférés (robots.txt)</p>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
+    {{#each ai_crawlers_list}}
+    <div style="padding:3px 8px;border-radius:12px;font-size:8px;font-weight:600;background:{{bg}};color:{{fg}};">{{name}}: {{status_short}}</div>
+    {{/each}}
+  </div>
+
+  <!-- Top 2 GEO finding -->
   {{#each findings_p2}}
-  <div class="finding-card {{border_class}}">
+  <div class="finding-card {{border_class}}" style="margin-bottom:8px;">
     <div class="fc-badges">
       <span class="fc-badge {{sev_class}}">{{severity}}</span>
       <span class="fc-badge b-tag">{{tag}}</span>
     </div>
     <p class="fc-title">{{title}}</p>
     <p class="fc-text"><span class="fc-label">Amit látunk:</span> {{evidence}}</p>
-    <p class="fc-text">{{why_problem}}</p>
-    <p class="fc-impact"><strong>Üzleti hatás:</strong> {{business_impact}}</p>
-    <p class="fc-fix"><strong>Javítás:</strong> {{fix}}</p>
-    <span class="fc-effort">⏱ {{fix_effort}} &nbsp;·&nbsp; Prioritás: {{priority}}</span>
+    <p class="fc-fix"><strong>Javítás:</strong> {{fix}} &nbsp;<span style="color:#94a3b8;font-size:8px;">⏱ {{fix_effort}}</span></p>
   </div>
   {{/each}}
 
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 2 / 5</div>
+  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — GEO Audit: AI kereső láthatóság &nbsp;·&nbsp; 2 / 5</div>
 </div>
 
 
@@ -475,7 +498,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
      ══════════════════════════════════════════ -->
 <div class="page">
 
-  <h2 class="section-title">Legfontosabb problémák (folytatás)</h2>
+  <h2 class="section-title">GEO Findings — Részletes elemzés</h2>
 
   <!-- findings_p3 = slice(2,6) — max 4 finding, nem overflow -->
   {{#each findings_p3}}
@@ -521,93 +544,73 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
     {{/each}}
   </div>
 
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 3 / 5</div>
+  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — GEO Audit: AI kereső láthatóság &nbsp;·&nbsp; 3 / 5</div>
 </div>
 
 
 <!-- ══════════════════════════════════════════
-     OLDAL 4: COMBINED SCORECARD + METHODOLOGY
+     OLDAL 4: 6-DIM GEO SCORECARD + QUICK WINS
      ══════════════════════════════════════════ -->
 <div class="page">
 
   <div class="two-col-65">
-    <!-- LEFT: GEO + Marketing kategóriák kompakt -->
+    <!-- LEFT: 6 GEO dimenzió scorecard -->
     <div>
-      <h2 class="section-title" style="font-size:13px;">GEO / SEO Scorecard</h2>
-      {{#each geo_categories}}
-      <div style="margin-bottom:9px;">
+      <h2 class="section-title" style="font-size:13px;">GEO Score — 6 dimenzió bontásban</h2>
+      {{#each score_methodology}}
+      <div style="margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-          <span style="font-size:10px;color:#334155;font-weight:600;">{{name}}</span>
-          <span style="font-size:11px;font-weight:bold;color:#162440;">{{score}}</span>
+          <span style="font-size:9.5px;color:#334155;font-weight:600;">{{label}}</span>
+          <span style="font-size:10px;font-weight:bold;color:#162440;">{{score}}<span style="font-size:8px;color:#94a3b8;font-weight:normal;">/100 ({{weight}}%)</span></span>
         </div>
-        <div style="background:#e8ecf0;border-radius:3px;height:6px;">
-          <div class="sb-fill {{color}}" style="width:{{score}}%;height:6px;border-radius:3px;"></div>
+        <div style="background:#e8ecf0;border-radius:3px;height:7px;">
+          <div class="sb-fill {{color}}" style="width:{{score}}%;height:7px;border-radius:3px;"></div>
         </div>
-        <p style="font-size:8.5px;color:#64748b;margin-top:2px;line-height:1.4;">
-          <span style="color:#27ae60;">✓</span> {{boost}} &nbsp;·&nbsp; <span style="color:#e74c3c;">✗</span> {{drag}}
-        </p>
       </div>
       {{/each}}
-
-      <h2 class="section-title" style="font-size:13px;margin-top:14px;">Marketing Scorecard</h2>
-      {{#each marketing_categories}}
-      <div style="margin-bottom:9px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-          <span style="font-size:10px;color:#334155;font-weight:600;">{{name}}</span>
-          <span style="font-size:11px;font-weight:bold;color:#162440;">{{score}}</span>
+      <h2 class="section-title" style="font-size:13px;margin-top:16px;">3 azonnali teendő</h2>
+      {{#each quick_wins}}
+      <div class="quick-win" style="margin-bottom:8px;">
+        <div class="qw-inner">
+          <div class="qw-num">{{number}}</div>
+          <div>
+            <p class="qw-title">{{title}}</p>
+            <p class="qw-meta">Ki: {{who}} &nbsp;·&nbsp; Idő: {{time}} &nbsp;·&nbsp; Költség: {{cost}}</p>
+          </div>
         </div>
-        <div style="background:#e8ecf0;border-radius:3px;height:6px;">
-          <div class="sb-fill {{color}}" style="width:{{score}}%;height:6px;border-radius:3px;"></div>
-        </div>
-        <p style="font-size:8.5px;color:#64748b;margin-top:2px;line-height:1.4;">
-          <span style="color:#27ae60;">✓</span> {{boost}} &nbsp;·&nbsp; <span style="color:#e74c3c;">✗</span> {{drag}}
-        </p>
       </div>
       {{/each}}
     </div>
 
-    <!-- RIGHT: Score methodology + Compliance státusz -->
+    <!-- RIGHT: GEO módszertan + compliance mini -->
     <div>
-      <!-- Score methodology box -->
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
-        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Pontszám módszertan (5×20%)</p>
-        {{#each score_methodology}}
-        <div style="margin-bottom:8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-            <span style="font-size:9px;color:#475569;">{{label}}</span>
-            <span style="font-size:9px;font-weight:bold;color:#162440;">{{score}}/100 &nbsp;<span style="font-size:8px;color:#94a3b8;">({{weight}}%)</span></span>
-          </div>
-          <div style="background:#e8ecf0;border-radius:2px;height:5px;">
-            <div class="sb-fill {{color}}" style="width:{{score}}%;height:5px;border-radius:2px;"></div>
-          </div>
+      <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+        <p style="font-size:9.5px;font-weight:bold;color:#3730a3;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">GEO Pontszám módszertana</p>
+        <div style="font-size:8.5px;color:#475569;line-height:1.8;">
+          <div>🔵 <strong>AI Citability (25%)</strong> — crawler hozzáférés, llms.txt, passage</div>
+          <div>🟡 <strong>Brand Authority (20%)</strong> — szerző, dátum, statisztikák</div>
+          <div>🟢 <strong>Tartalom and E-E-A-T (20%)</strong> — meta, heading, alt, nyelv</div>
+          <div>⚙️ <strong>Technikai alap (15%)</strong> — HTTPS, canonical, sitemap</div>
+          <div>📋 <strong>Strukturált adat (10%)</strong> — schema, JSON-LD</div>
+          <div>📡 <strong>Platform opt. (10%)</strong> — OG tagek, meta title</div>
         </div>
-        {{/each}}
-        <p style="font-size:8px;color:#94a3b8;margin-top:8px;border-top:1px solid #e2e8f0;padding-top:6px;">Az összesített pontszám a 3 terület súlyozott átlaga.</p>
+        <p style="font-size:7.5px;color:#6366f1;margin-top:8px;border-top:1px solid #c7d2fe;padding-top:6px;">Princeton/IIT Delhi GEO kutatás (KDD 24) + piaci standardok alapján.</p>
       </div>
-
-      <!-- Compliance státusz tábla -->
       <div>
-        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Jogi Compliance státusz</p>
-        <div style="margin-bottom:6px;padding:8px 10px;background:#f8fafc;border-radius:4px;text-align:center;">
-          <span style="font-size:22px;font-weight:bold;color:#162440;">{{compliance_score}}/100</span>
-          <span style="font-size:16px;font-weight:bold;color:#2563eb;margin-left:8px;">{{compliance_grade}}</span>
-        </div>
+        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Jogi Alapok</p>
         {{#each compliance_frameworks}}
         <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
-          <span style="font-size:9px;color:#334155;flex:1;">{{name}}</span>
-          <span style="font-size:8.5px;font-weight:600;text-align:right;flex-shrink:0;max-width:55%;">{{status}}</span>
+          <span style="font-size:8.5px;color:#334155;flex:1;">{{name}}</span>
+          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:55%;">{{status}}</span>
         </div>
         {{/each}}
-        <div style="margin-top:10px;padding:8px;background:#fff8f3;border:1px solid #fed7aa;border-radius:4px;">
-          <p style="font-size:8.5px;color:#92400e;line-height:1.5;">⚠ Automatikus scan — tényleges jogi megfelelőséghez szakértői átvizsgálás szükséges.</p>
-        </div>
+        <p style="font-size:7.5px;color:#92400e;margin-top:8px;padding:6px 8px;background:#fff8f3;border-radius:4px;">Automatikus scan — jogi megfelelőséghez szakértői átvizsgálás szükséges.</p>
       </div>
     </div>
   </div>
 
-  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 4 / 5</div>
+  <div class="footer">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — GEO Audit: AI kereső láthatóság &nbsp;·&nbsp; 4 / 5</div>
 </div>
-
 
 <!-- ══════════════════════════════════════════
      OLDAL 5: SCHEMA/LLMS UPSELL + CTA + ZÁRÓ
@@ -661,19 +664,19 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
           <th style="padding:5px 8px;text-align:center;font-size:9px;color:#64748b;">Értékelés</th>
         </tr>
         <tr style="border-bottom:1px solid #f1f5f9;">
-          <td style="padding:5px 8px;color:#334155;">GEO / SEO</td>
+          <td style="padding:5px 8px;color:#334155;">GEO Score</td>
           <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{geo_score}}/100</td>
           <td style="padding:5px 8px;text-align:center;font-size:9px;">{{geo_status_label}}</td>
         </tr>
         <tr style="border-bottom:1px solid #f1f5f9;">
-          <td style="padding:5px 8px;color:#334155;">Marketing</td>
-          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{marketing_score}}/100</td>
-          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{marketing_status_label}}</td>
+          <td style="padding:5px 8px;color:#334155;">AI Citability</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{ai_citability_score}}/100</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{perplexity_label}}</td>
         </tr>
         <tr>
-          <td style="padding:5px 8px;color:#334155;">Compliance</td>
-          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{compliance_score}}/100</td>
-          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{compliance_grade}} — {{compliance_status_label}}</td>
+          <td style="padding:5px 8px;color:#334155;">Brand Authority</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{brand_authority_score}}/100</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{entity_label}}</td>
         </tr>
       </table>
       <!-- Audit meta -->
@@ -699,27 +702,27 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
     <p style="font-size:9px;font-weight:bold;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Mit vizsgált az audit</p>
     <div style="display:flex;gap:20px;">
       <div style="flex:1;">
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Canonical URL és domain konzisztencia</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Meta title és description</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Sitemap.xml és robots.txt</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> Schema markup (JSON-LD)</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#27ae60;">✓</span> HTTPS / SSL, heading struktúra</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> 14 AI crawler hozzáférés (robots.txt)</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> llms.txt detektálás és tartalom</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> Passage minőség (134–167 szó optimum)</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> Entitás jelek: szerző, dátum, statisztikák</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> Perplexity valós citáció mérés</div>
       </div>
       <div style="flex:1;">
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> Open Graph tagek, kép alt szövegek</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> GA4 / GTM analytics</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> GDPR, Cookie hozzájárulás, impresszum</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> ÁSZF, Magyar jogszabályok</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#2563eb;">→</span> Marketing tartalom és CTA elemzés</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Schema markup (JSON-LD), OG tagek</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Canonical, sitemap.xml, HTTPS</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Meta title, description, heading struktúra</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Cookie hozzájárulás, GDPR alap</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> 5 AI platform readiness becslés</div>
       </div>
     </div>
   </div>
 
   <div class="disclaimer" style="font-size:8px;">
-    <strong>Jogi nyilatkozat:</strong> Ez az audit automatikus technológiai és compliance scan alapján készült, és tájékoztató jellegű. Nem minősül jogi tanácsadásnak. A compliance értékelés nyilvánosan elérhető weblap-adatokon alapul — tényleges jogszabályi megfelelőséghez szakértői átvizsgálás szükséges. Készítette: {{company_name}} · {{contact_website}}
+    <strong>Megjegyzés:</strong> Ez az audit automatikus GEO readiness assessment — megmutatja az AI-idézhetőség felkészültségét, de nem garantálja a tényleges AI-citációkat. A Perplexity mérés valós API-lekérdezésen alapul. Compliance értékelés tájékoztató jellegű — tényleges megfelelőséghez szakértői átvizsgálás szükséges. Készítette: {{company_name}} · {{contact_website}}
   </div>
 
-  <div class="footer" style="border-top-color:#e0e0e0;">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — AI-alapú weboldal diagnosztika &nbsp;·&nbsp; 5 / 5</div>
+  <div class="footer" style="border-top-color:#e0e0e0;">{{date}} &nbsp;·&nbsp; {{domain}} &nbsp;·&nbsp; {{company_name}} — GEO Audit: AI kereső láthatóság &nbsp;·&nbsp; 5 / 5</div>
 </div>
 
 

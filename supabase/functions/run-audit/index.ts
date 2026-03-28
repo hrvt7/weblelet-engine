@@ -22,6 +22,10 @@ interface TechnicalScan {
   open_graph: { found: boolean; tags: string[] };
   viewport: boolean;
   favicon: boolean;
+  // GEO-specific fields
+  llms_txt: { found: boolean; has_full: boolean; size: number | null };
+  passage_quality: { avg_words_per_section: number; total_sections: number; optimal_sections: number };
+  entity_signals: { has_author: boolean; has_date: boolean; has_stats: boolean; faq_detected: boolean; entity_count_estimate: number };
 }
 
 interface FrameworkResult {
@@ -141,8 +145,95 @@ async function fetchSubPages(html: string, baseUrl: string): Promise<Record<stri
   return subPages;
 }
 
+// ═══ GEO: llms.txt FETCH ═══
+async function fetchLlmsTxt(baseUrl: string): Promise<{ found: boolean; has_full: boolean; size: number | null }> {
+  try {
+    const base = new URL(baseUrl).origin;
+    const main = await safeFetch(`${base}/llms.txt`);
+    const full = await safeFetch(`${base}/llms-full.txt`);
+    if (main?.status === 200) {
+      return { found: true, has_full: full?.status === 200, size: main.text.length };
+    }
+    return { found: false, has_full: false, size: null };
+  } catch { return { found: false, has_full: false, size: null }; }
+}
+
+// ═══ GEO: PERPLEXITY VISIBILITY CHECK ═══
+async function checkPerplexityVisibility(domain: string, brandName: string, businessType: string): Promise<{
+  cited_count: number; total_queries: number; prompts_cited: string[]; citations_found: string[];
+}> {
+  const apiKey = Deno.env.get("PERPLEXITY_API_KEY");
+  if (!apiKey) return { cited_count: 0, total_queries: 0, prompts_cited: [], citations_found: [] };
+
+  // Generate 5 relevant prompts based on business type
+  const prompts = generatePerplexityPrompts(businessType, brandName, domain);
+  const cited: string[] = [];
+  const allCitations: string[] = [];
+
+  for (const prompt of prompts) {
+    try {
+      const res = await fetch("https://api.perplexity.ai/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "sonar",
+          messages: [{ role: "user", content: prompt }],
+          return_citations: true,
+          search_recency_filter: "month",
+        }),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const citations: string[] = data.citations || [];
+      allCitations.push(...citations);
+      const domainClean = domain.replace(/^www\./, "");
+      if (citations.some((c: string) => c.includes(domainClean))) {
+        cited.push(prompt.substring(0, 60));
+      }
+    } catch { continue; }
+  }
+
+  return {
+    cited_count: cited.length,
+    total_queries: prompts.length,
+    prompts_cited: cited,
+    citations_found: [...new Set(allCitations)].slice(0, 10),
+  };
+}
+
+function generatePerplexityPrompts(businessType: string, brandName: string, domain: string): string[] {
+  const domainClean = domain.replace(/^www\./, "").replace(/\.[^.]+$/, "");
+  const bt = (businessType || "").toLowerCase();
+  if (bt.includes("étterem") || bt.includes("restaurant")) {
+    return [
+      `legjobb ${domainClean} étterem vélemények`,
+      `${brandName} étterem menü és nyitvatartás`,
+      `jó étterem ${domainClean} környékén`,
+      `${brandName} asztalfoglalás`,
+      `${domainClean} éttermi ajánlások`,
+    ];
+  }
+  if (bt.includes("webshop") || bt.includes("shop") || bt.includes("bolt")) {
+    return [
+      `${brandName} termékek vélemények`,
+      `${domainClean} webshop megbízható?`,
+      `${brandName} vásárlói tapasztalatok`,
+      `${domainClean} árak és szállítás`,
+      `${brandName} összehasonlítás`,
+    ];
+  }
+  // General / service
+  return [
+    `${brandName} szolgáltatás vélemények`,
+    `${domainClean} tapasztalatok`,
+    `${brandName} cég megbízható?`,
+    `${domainClean} árak és ajánlatok`,
+    `${brandName} céginformáció`,
+  ];
+}
+
 // ═══ TECHNICAL SCANNER ═══
-function runTechnicalScan(html: string, url: string, robotsTxt: string | null, sitemapStatus: number | null): TechnicalScan {
+function runTechnicalScan(html: string, url: string, robotsTxt: string | null, sitemapStatus: number | null, llmsTxtResult?: { found: boolean; has_full: boolean; size: number | null }): TechnicalScan {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const domain = new URL(url).hostname;
   const htmlLower = html.toLowerCase();
@@ -216,6 +307,33 @@ function runTechnicalScan(html: string, url: string, robotsTxt: string | null, s
     if (htmlLower.includes(pattern)) { cookieFound = true; cookieProvider = provider; break; }
   }
 
+  // ── Passage quality: avg words between h2/h3 headings ──
+  const passageQuality = (() => {
+    const bodyText = doc?.querySelector("body")?.textContent || html;
+    const sections = bodyText.split(/\n(?=[A-ZÁÉÍÓÖŐÚÜŰ][^\n]{10,80}\n)/);
+    const wordCounts = sections.map(s => s.trim().split(/\s+/).filter(w => w.length > 2).length).filter(c => c >= 20);
+    const avg = wordCounts.length > 0 ? Math.round(wordCounts.reduce((a, b) => a + b, 0) / wordCounts.length) : 0;
+    const optimal = wordCounts.filter(c => c >= 120 && c <= 200).length;
+    return { avg_words_per_section: avg, total_sections: wordCounts.length, optimal_sections: optimal };
+  })();
+
+  // ── Entity signals ──
+  const entitySignals = (() => {
+    const authorEl = doc?.querySelector('meta[name="author"]') || doc?.querySelector('[rel="author"]');
+    const dateEl = doc?.querySelector('meta[property="article:modified_time"]') || doc?.querySelector("time[datetime]");
+    const statsPattern = /\d+[,.]?\d*\s*(%|százalék|millió|milliárd|ezer|db|db\.)/i;
+    const faqSchema = schemaTypes.some((t: string) => t.toLowerCase().includes("faq"));
+    const faqHtml = htmlLower.includes("faq") || htmlLower.includes("frequently asked") || htmlLower.includes("kérdések és válaszok");
+    const entityCount = (html.match(/\b[A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ]{2,}(?:\s+[A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ]{2,}){0,2}\b/g) || []).length;
+    return {
+      has_author: !!authorEl,
+      has_date: !!dateEl,
+      has_stats: statsPattern.test(html),
+      faq_detected: faqSchema || faqHtml,
+      entity_count_estimate: Math.min(entityCount, 50),
+    };
+  })();
+
   return {
     canonical: { found: !!canonicalUrl, url: canonicalUrl, matchesDomain: canonicalUrl ? canonicalUrl.includes(domain) : false },
     meta_title: { found: !!titleContent, content: titleContent, length: titleContent?.length || 0 },
@@ -233,6 +351,9 @@ function runTechnicalScan(html: string, url: string, robotsTxt: string | null, s
     open_graph: { found: ogTags.length > 0, tags: ogTags },
     viewport: !!doc?.querySelector('meta[name="viewport"]'),
     favicon: !!doc?.querySelector('link[rel="icon"]') || !!doc?.querySelector('link[rel="shortcut icon"]'),
+    llms_txt: llmsTxtResult || { found: false, has_full: false, size: null },
+    passage_quality: passageQuality,
+    entity_signals: entitySignals,
   };
 }
 
@@ -347,23 +468,57 @@ function runComplianceScan(html: string, subPages: Record<string, string>, audit
 
 // ═══ SCORE CALCULATOR ═══
 function calculateGeoScore(scan: TechnicalScan): number {
-  let score = 0;
-  if (scan.schema_markup.found) score += 15;
-  const crawlerVals = Object.values(scan.robots_txt.aiCrawlers);
-  score += Math.round((crawlerVals.filter(v => v !== "blocked").length / crawlerVals.length) * 20);
-  if (scan.meta_title.found) score += 5;
-  if (scan.meta_description.found) score += 5;
-  if (scan.open_graph.found) score += 5;
-  if (scan.robots_txt.found) score += 8;
-  if (scan.sitemap.found) score += 7;
-  if (scan.https) score += 4;
-  if (scan.canonical.found) score += 3;
-  if (scan.viewport) score += 2;
-  if (scan.lang_attr) score += 2;
-  if (scan.ga4 || scan.gtm) score += 5;
-  if (scan.cookie_consent.found) score += 5;
-  if (scan.images.total === 0 || scan.images.withAlt / scan.images.total >= 0.8) score += 5;
-  return Math.min(score, 100);
+  // 6-dimenzió GEO scoring (research alapján: geo-seo-claude + piaci standard)
+  
+  // 1. AI Citability & Visibility (25%)
+  const crawlerVals = Object.values(scan.robots_txt.aiCrawlers || {});
+  const crawlerScore = crawlerVals.length > 0
+    ? Math.round((crawlerVals.filter(v => v !== "blocked").length / crawlerVals.length) * 30)
+    : 15;
+  const llmsTxtScore = (scan.llms_txt?.found) ? 20 : 0;
+  const passageScore = (() => {
+    const pq = scan.passage_quality;
+    if (!pq || pq.total_sections === 0) return 5;
+    const ratio = pq.optimal_sections / Math.max(pq.total_sections, 1);
+    return Math.round(ratio * 10);
+  })();
+  const faqScore = scan.entity_signals?.faq_detected ? 5 : 0;
+  const aiCitability = Math.min(crawlerScore + llmsTxtScore + passageScore + faqScore, 25);
+
+  // 2. Brand Authority (20%)
+  const authorScore = scan.entity_signals?.has_author ? 7 : 0;
+  const dateScore = scan.entity_signals?.has_date ? 5 : 0;
+  const statsScore = scan.entity_signals?.has_stats ? 5 : 0;
+  const entityDensityScore = (scan.entity_signals?.entity_count_estimate || 0) >= 15 ? 3 : 0;
+  const brandAuthority = Math.min(authorScore + dateScore + statsScore + entityDensityScore, 20);
+
+  // 3. Content Quality & E-E-A-T (20%)
+  const metaDescScore = scan.meta_description.found ? 5 : 0;
+  const h1Score = (scan.headings.h1 || 0) >= 1 ? 5 : 0;
+  const altScore = (scan.images.total === 0 || (scan.images.withAlt / scan.images.total) >= 0.8) ? 5 : 0;
+  const langScore = scan.lang_attr ? 5 : 0;
+  const contentQuality = Math.min(metaDescScore + h1Score + altScore + langScore, 20);
+
+  // 4. Technical Foundations (15%)
+  const httpsScore = scan.https ? 5 : 0;
+  const canonicalScore = scan.canonical.found ? 3 : 0;
+  const sitemapScore = scan.sitemap.found ? 4 : 0;
+  const robotsScore = scan.robots_txt.found ? 3 : 0;
+  const technicalBase = Math.min(httpsScore + canonicalScore + sitemapScore + robotsScore, 15);
+
+  // 5. Structured Data / Schema (10%)
+  const schemaFoundScore = scan.schema_markup.found ? 5 : 0;
+  const schemaTypesScore = (scan.schema_markup.types?.length || 0) > 1 ? 3 : 0;
+  const schemaFieldsScore = (scan.schema_markup.fieldsCount || 0) > 5 ? 2 : 0;
+  const structuredData = Math.min(schemaFoundScore + schemaTypesScore + schemaFieldsScore, 10);
+
+  // 6. Platform Optimization (10%)
+  const ogScore = scan.open_graph.found ? 4 : 0;
+  const titleScore = scan.meta_title.found ? 3 : 0;
+  const viewportScore = scan.viewport ? 3 : 0;
+  const platformOpt = Math.min(ogScore + titleScore + viewportScore, 10);
+
+  return Math.min(aiCitability + brandAuthority + contentQuality + technicalBase + structuredData + platformOpt, 100);
 }
 
 function calculateMarketingScore(scan: TechnicalScan): number {
@@ -408,17 +563,87 @@ NYELVI SZABÁLYOK (KÖTELEZŐ):
 
 const AGENT_PROMPTS: Record<string, string> = {
   "geo-ai-visibility": `${GLOBAL_RULES}
-Te az AI keresők láthatósági agent-je vagy. A robots.txt AI crawler státuszait és a domain-t kapod meg.
-Feladatod: elemezd melyik AI crawler (GPTBot, ClaudeBot, PerplexityBot stb.) van engedélyezve/tiltva, adj AI Citability score becslést és Brand Authority score-t.
-FONTOS: Az AI keresők MÁSODLAGOSAK — ÉTTEREMNÉL ÉS HELYI SZOLGÁLTATÓNÁL KÜLÖNÖSEN. NE adj KRITIKUS severity-t AI crawler/AI platform témában — maximum KÖZEPES. A finding végén add hozzá: "Az AI keresők szerepe növekvő, de a hagyományos Google keresés és az online foglalhatóság még mindig a fő csatorna."
-findings: legfeljebb 1 db AI-témájú finding. Ha a site étterem/helyi szolgáltató → az AI finding severity maximum KÖZEPES.
-Válasz formátum: {"findings": [...], "ai_citability_score": 0-100, "brand_authority_score": 0-100}`,
+Te a GEO AI Láthatóság agent vagy. Ez az audit ELSŐDLEGES fókusza — GEO-first rendszer.
+
+INPUT: technicalScan (ai crawlers, llms_txt, passage_quality, entity_signals), perplexityResults, domain, businessType, brandName.
+
+FELADATOD:
+1. AI CRAWLER HOZZÁFÉRÉS: Ellenőrizd mind a 14 crawler státuszát. Kritikus ha GPTBot / ClaudeBot / PerplexityBot / Google-Extended tiltva van.
+   Evidence: "GPTBot: [allowed/blocked/not_mentioned] | ClaudeBot: [..] | PerplexityBot: [..]"
+
+2. llms.txt STÁTUSZ: KRITIKUS hiány ha nincs. Ez az AI keresők számára legfontosabb technikai signal.
+   Evidence: "llms.txt: [DETEKTÁLT (X karakter) / NEM DETEKTÁLT]"
+
+3. PERPLEXITY VALÓS MÉRÉS: Ha perplexityResults megvan, add be az evidence-be:
+   "Perplexity valós mérés: X/5 lekérdezésnél idéz"
+   Ha cited_count === 0 → KRITIKUS finding: "Az oldal nem jelenik meg Perplexity válaszaiban"
+   Ha cited_count >= 2 → POZITÍV, csak mention a finding-ben
+
+4. PASSAGE MINŐSÉG: avg_words_per_section vs optimum 134-167 szó.
+   Ha avg < 80 vagy avg > 250 → finding (KÖZEPES)
+
+5. ENTITÁS JELEK: has_author, has_date, has_stats — hiányuk csökkenti AI citálhatóságot.
+
+AI CITABILITY SCORE számítás (0-100):
+- Összes 14 crawler allowed: 30 pont max (allowed/not_mentioned = ok, blocked = 0)
+- llms.txt jelen: 20 pont
+- Perplexity cited_count/total * 25 pont max (ha nincs API key: 0)
+- passage quality optimal%: 10 pont max
+- entity signals (author+date+stats = 3×5): 15 pont max
+
+BRAND AUTHORITY SCORE (0-100):
+- author signals: 20pt
+- date freshness: 15pt
+- stats density: 15pt
+- schema present: 20pt
+- GA4/GTM: 15pt
+- lang_attr: 15pt
+
+Adj 2-4 GEO-specifikus finding-et PRIORITÁS sorrendben. Severity: KRITIKUS/MAGAS/KÖZEPES.
+Válasz: {"findings": [...], "ai_citability_score": 0-100, "brand_authority_score": 0-100}`,
 
   "geo-platform-analysis": `${GLOBAL_RULES}
-Te az AI platform elemző agent vagy. Becsüld meg mennyire jelenik meg az oldal az 5 fő AI platformon.
-A technicalScan és a domain alapján adj platform score-okat. NE keressd ténylegesen — becsülj a technikai jelek alapján (schema, robots.txt, tartalom minőség).
-FONTOS: Az AI keresők MÁSODLAGOSAK. NE adj KRITIKUS severity-t — maximum KÖZEPES. findings: legfeljebb 1 db AI-témájú finding. A finding végén add hozzá: "Az AI keresők szerepe növekvő, de a hagyományos Google keresés még mindig a fő csatorna."
-Válasz: {"findings": [], "platform_scores": {"google_ai": 0-100, "chatgpt": 0-100, "perplexity": 0-100, "gemini": 0-100, "bing_copilot": 0-100}}`,
+Te a GEO Platform Optimalizálás agent vagy. Az 5 AI platform mindegyikére adj KONKRÉT értékelést és javítási javaslatot.
+
+INPUT: technicalScan, domain, businessType.
+
+PLATFORM SCORING LOGIKA (0-100 mindegyikre):
+
+ChatGPT (GPTBot):
+- GPTBot allowed: +25pt
+- FAQ/Q&A struktúra: +20pt (faq_detected)
+- Passage quality 134-167 szó: +20pt (optimal_sections > 0)
+- Faktualitás jelek (stats, dátum): +20pt
+- Entity density > 10: +15pt
+
+Perplexity (PerplexityBot):
+- PerplexityBot allowed: +25pt
+- llms.txt: +20pt
+- Frissesség (has_date): +20pt
+- Struktúrált tartalom: +20pt (h2>3)
+- Multi-format (képek, videó jelek): +15pt
+
+Google AI Overviews (Google-Extended):
+- Google-Extended allowed: +25pt
+- Schema markup: +25pt
+- E-E-A-T (author+date+stats): +25pt
+- Structured data completeness: +25pt
+
+Gemini (Google):
+- Schema: +30pt
+- Hiteles publisher jelek: +25pt (GA4, domain authority jelek)
+- Wikipedia-típusú tartalom struktúra: +25pt
+- HTTPS + canonical: +20pt
+
+Bing Copilot (Bingbot):
+- Bingbot allowed: +30pt
+- OG tagek: +25pt
+- Schema: +25pt
+- Meta title/description: +20pt
+
+Adj 1-2 konkrét platform-specifikus finding-et a LEGGYENGÉBB platformhoz.
+Minden finding evidence-ében jelöld meg: melyik platform + miért alacsony.
+Válasz: {"findings": [...], "platform_scores": {"google_ai": 0-100, "chatgpt": 0-100, "perplexity": 0-100, "gemini": 0-100, "bing_copilot": 0-100}}`,
 
   "geo-technical": `${GLOBAL_RULES}
 Te a technikai SEO agent vagy. A technicalScan TÉNYEKET tartalmaz — ezekből generálj RÉSZLETES findings-eket.
@@ -562,6 +787,16 @@ marketing_categories (4 db): Tartalom & Üzenetek, Konverzió, SEO & Felfedezhet
 
 Válasz: {"geo_categories": [...], "marketing_categories": [...]}`,
 
+  "geo-compliance-mini": `${GLOBAL_RULES}
+Te a minimális compliance check agent vagy. Csak a legalapvetőbb jogi/GDPR ellenőrzést végzed.
+Maximum 2 finding. Fókusz: (1) cookie consent, (2) alapvető adatvédelmi oldal megléte.
+COOKIE: A cookie_consent_from_tech_scan.found az EGYETLEN hiteles forrás.
+• found === true → legfeljebb KÖZEPES finding a granularitásról
+• found === false → MAGAS finding: "❌ NEM DETEKTÁLT — cookie hozzájárulás banner hiányzik"
+GDPR: Csak ha egyértelműen hiányzik az adatvédelmi tájékoztató → KÖZEPES finding.
+Minden más compliance téma (PCI, CAN-SPAM, NAIH) → kihagyni.
+Válasz: {"findings": [...]}`,
+
   // === SZINT 2 AGENT-EK ===
 
   "szint2-proposal": `${GLOBAL_RULES}
@@ -696,26 +931,42 @@ function deduplicateFindings(findings: any[]): any[] {
 async function runAllAgents(
   technicalScan: TechnicalScan, complianceScan: ComplianceScan,
   rawHtml: string, businessType: string, domain: string, brandName: string,
-  partnerData: any, auditLevel: string, geoScore: number, marketingScore: number
+  partnerData: any, auditLevel: string, geoScore: number, marketingScore: number,
+  perplexityResults?: any
 ): Promise<any> {
   const rawFindings: any[] = [];
   let totalTokens = 0;
 
   const al = auditLevel; // shorthand for readability
 
-  // === BATCH 1: GEO + MARKETING + COMPLIANCE PÁRHUZAMOSAN (8 hívás egyszerre) ===
-  const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
-    callAgent("geo-ai-visibility", { robots_txt: technicalScan.robots_txt, domain, businessType }, al),
+  // === BATCH 1: GEO-FIRST — 6 párhuzamos agent ===
+  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+    // GEO AI láthatóság — most Perplexity valós adattal
+    callAgent("geo-ai-visibility", {
+      technicalScan,
+      domain,
+      businessType,
+      brandName,
+      perplexityResults: perplexityResults || null,
+    }, al),
+    // Platform-specifikus scoring (5 AI platform)
     callAgent("geo-platform-analysis", { technicalScan, domain, businessType }, al),
+    // Technikai GEO (canonical, meta, sitemap, AI crawlers evidence)
     callAgent("geo-technical", { technicalScan, domain }, al),
-    callAgent("geo-content", { html: rawHtml.substring(0, 5000), businessType }, al),
-    callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName }, al),
-    callAgent("market-content", { html: rawHtml.substring(0, 5000), technicalScan, businessType }, al),
-    callAgent("market-technical", { technicalScan, businessType }, al),
-    callAgent("compliance-findings", { complianceScan, businessType, cookie_consent_from_tech_scan: technicalScan.cookie_consent }, al),
+    // Tartalom minőség + E-E-A-T + passage quality
+    callAgent("geo-content", {
+      html: rawHtml.substring(0, 5000),
+      businessType,
+      passage_quality: technicalScan.passage_quality,
+      entity_signals: technicalScan.entity_signals,
+    }, al),
+    // Schema + llms.txt generálás
+    callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName, llms_txt: technicalScan.llms_txt }, al),
+    // Compliance mini (cookie + GDPR alap only)
+    callAgent("geo-compliance-mini", { technicalScan, businessType, cookie_consent_from_tech_scan: technicalScan.cookie_consent }, al),
   ]);
-  
-  for (const r of [r1, r2, r3, r4, r5, r6, r7, r8]) {
+
+  for (const r of [r1, r2, r3, r4, r5, r6]) {
     rawFindings.push(...(r.findings || []));
     totalTokens += r.tokensUsed || 0;
   }
@@ -725,7 +976,7 @@ async function runAllAgents(
 
   // === BATCH 2: SYNTHESIS — strengths + gaps/fixes + categories PÁRHUZAMOSAN ===
   const [r9, r10, r13] = await Promise.all([
-    callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6, r7, r8 }, technicalScan, businessType }, al),
+    callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6 }, technicalScan, businessType }, al),
     callAgent("synthesis-gaps-fixes", { findings: allFindings, businessType }, al),
     callAgent("synthesis-categories", { technicalScan, complianceScan, businessType }, al),
   ]);
@@ -779,6 +1030,10 @@ async function runAllAgents(
     platform_scores: r2.platform_scores || {},
     ai_citability_score: r1.ai_citability_score || 0,
     brand_authority_score: r1.brand_authority_score || 0,
+    perplexity_results: perplexityResults || null,
+    llms_txt_status: technicalScan.llms_txt || { found: false, has_full: false, size: null },
+    passage_quality: technicalScan.passage_quality || {},
+    entity_signals: technicalScan.entity_signals || {},
     tokensUsed: totalTokens,
     ...szint2Extra,
   };
@@ -849,10 +1104,6 @@ function renderHbs(tmpl: string, data: Record<string, any>): string {
 // ═══ PDF GENERATION ═══
 async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint8Array> {
   const apiKey = Deno.env.get("PDFBOLT_API_KEY")!;
-
-  // Server-side inline rendering — zero external dependencies
-  const renderedHtml = renderHbs(PDF_TEMPLATE, templateData);
-  const templateB64 = btoa(unescape(encodeURIComponent(renderedHtml)));
 
   // Az audit JSON-t templateData-ként küldjük a PDFBolt template-nek
   const templateData = {
@@ -931,7 +1182,85 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       cost: q.cost || "",
     })),
     
-    // Kategória bontás (score bar-okhoz, szín előre számolva)
+    // Platform scores (5 AI platform)
+    platform_scores: auditJson.platform_scores || {},
+    platform_scores_list: (() => {
+      const ps = auditJson.platform_scores || {};
+      return [
+        { name: "ChatGPT", score: ps.chatgpt || 0, color: (ps.chatgpt||0) < 40 ? "fill-red" : (ps.chatgpt||0) < 75 ? "fill-yellow" : "fill-green" },
+        { name: "Perplexity", score: ps.perplexity || 0, color: (ps.perplexity||0) < 40 ? "fill-red" : (ps.perplexity||0) < 75 ? "fill-yellow" : "fill-green" },
+        { name: "Google AI", score: ps.google_ai || 0, color: (ps.google_ai||0) < 40 ? "fill-red" : (ps.google_ai||0) < 75 ? "fill-yellow" : "fill-green" },
+        { name: "Gemini", score: ps.gemini || 0, color: (ps.gemini||0) < 40 ? "fill-red" : (ps.gemini||0) < 75 ? "fill-yellow" : "fill-green" },
+        { name: "Bing Copilot", score: ps.bing_copilot || 0, color: (ps.bing_copilot||0) < 40 ? "fill-red" : (ps.bing_copilot||0) < 75 ? "fill-yellow" : "fill-green" },
+      ];
+    })(),
+
+    // Perplexity valós mérés
+    perplexity_cited_count: auditJson.perplexity_results?.cited_count || 0,
+    perplexity_total_queries: auditJson.perplexity_results?.total_queries || 5,
+    perplexity_has_data: !!(auditJson.perplexity_results?.total_queries),
+    perplexity_label: (() => {
+      const r = auditJson.perplexity_results;
+      if (!r || !r.total_queries) return "🔍 Nem mérve (API kulcs szükséges)";
+      if (r.cited_count === 0) return "❌ Nem idézi a Perplexity";
+      if (r.cited_count >= 3) return `✅ ${r.cited_count}/${r.total_queries} lekérdezésnél idéz`;
+      return `⚠️ ${r.cited_count}/${r.total_queries} lekérdezésnél idéz`;
+    })(),
+
+    // llms.txt státusz
+    llms_txt_found: !!(auditJson.llms_txt_status?.found),
+    llms_txt_label: auditJson.llms_txt_status?.found
+      ? `✅ DETEKTÁLT (${auditJson.llms_txt_status?.size || 0} karakter${auditJson.llms_txt_status?.has_full ? " + llms-full.txt is megvan" : ""})`
+      : "❌ NEM DETEKTÁLT",
+
+    // Passage quality
+    passage_avg_words: auditJson.passage_quality?.avg_words_per_section || 0,
+    passage_optimal: auditJson.passage_quality?.optimal_sections || 0,
+    passage_total: auditJson.passage_quality?.total_sections || 0,
+    passage_label: (() => {
+      const avg = auditJson.passage_quality?.avg_words_per_section || 0;
+      if (avg === 0) return "🔍 Nem mérve";
+      if (avg >= 120 && avg <= 200) return `✅ ${avg} szó/szekció (optimális: 134–167)`;
+      if (avg < 80) return `❌ ${avg} szó/szekció — túl rövid (optimum: 134–167)`;
+      return `⚠️ ${avg} szó/szekció (optimum: 134–167)`;
+    })(),
+
+    // Entity signals
+    entity_has_author: !!(auditJson.entity_signals?.has_author),
+    entity_has_date: !!(auditJson.entity_signals?.has_date),
+    entity_has_stats: !!(auditJson.entity_signals?.has_stats),
+    entity_faq: !!(auditJson.entity_signals?.faq_detected),
+    entity_label: (() => {
+      const es = auditJson.entity_signals || {};
+      const count = [es.has_author, es.has_date, es.has_stats].filter(Boolean).length;
+      return count >= 3 ? "✅ Erős entitás jelek" : count >= 2 ? "⚠️ Részleges entitás jelek" : "❌ Gyenge entitás jelek";
+    })(),
+
+    // AI Citability score
+    ai_citability_score: auditJson.ai_citability_score || 0,
+    brand_authority_score: auditJson.brand_authority_score || 0,
+
+    // AI Crawlers list (template page 2 grid)
+  ai_crawlers_list: (() => {
+    const ac = (auditJson.technical_scan?.robots_txt?.aiCrawlers || {}) as Record<string, string>;
+    const entries = Object.entries(ac);
+    if (entries.length === 0) {
+      // Fallback: show all 14 known crawlers as N/A if no data
+      return [
+        "GPTBot","ChatGPT-User","Google-Extended","Googlebot","Bingbot",
+        "PerplexityBot","ClaudeBot","Anthropic-ai","cohere-ai",
+        "Meta-ExternalAgent","Meta-ExternalFetcher","Bytespider","CCBot","Applebot"
+      ].map(name => ({ name, status_short: "N/A", bg: "#f1f5f9", fg: "#64748b" }));
+    }
+    return entries.map(([name, status]) => ({
+      name,
+      status_short: status === "blocked" ? "TILTOTT" : status === "allowed" ? "OK" : "N/A",
+      bg: status === "blocked" ? "#fee2e2" : status === "allowed" ? "#dcfce7" : "#f1f5f9",
+      fg: status === "blocked" ? "#991b1b" : status === "allowed" ? "#166534" : "#64748b",
+    }));
+  })(),
+
+  // Kategória bontás (score bar-okhoz, szín előre számolva)
     geo_categories: (auditJson.geo_categories || []).map((c: any) => ({...c, color: (c.score||0) < 40 ? "fill-red" : (c.score||0) < 75 ? "fill-yellow" : "fill-green"})),
     marketing_categories: (auditJson.marketing_categories || []).map((c: any) => ({...c, color: (c.score||0) < 40 ? "fill-red" : (c.score||0) < 75 ? "fill-yellow" : "fill-green"})),
 
@@ -943,22 +1272,40 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     marketing_status_label: (auditJson.marketing_score || 0) >= 70 ? "✅ Jó" : (auditJson.marketing_score || 0) >= 45 ? "⚠️ Fejlesztendő" : "🔴 Kritikus",
     compliance_status_label: (auditJson.compliance_score || 0) >= 75 ? "✅ Megfelelő" : (auditJson.compliance_score || 0) >= 40 ? "⚠️ Hiányos" : "🔴 Kritikus",
 
-    // Score methodology — 5×20% transzparens bontás
+    // GEO Score methodology — 6 dimenzió (research alapján)
     score_methodology: (() => {
       const ts = auditJson.technical_scan || {};
-      const cs = auditJson.compliance_scan || {};
-      const techBase = Math.round(((ts.https ? 1 : 0) + (ts.canonical?.found ? 1 : 0) + (ts.robots_txt?.found ? 1 : 0) + (ts.sitemap?.found ? 1 : 0) + (ts.viewport ? 1 : 0)) / 5 * 100);
-      const onPage = Math.round(((ts.meta_title?.found ? 1 : 0) + (ts.meta_description?.found ? 1 : 0) + ((ts.headings?.h1 || 0) >= 1 ? 1 : 0) + ((ts.images?.total || 0) === 0 || ((ts.images?.withAlt || 0) / Math.max(ts.images?.total || 1, 1)) >= 0.8 ? 1 : 0)) / 4 * 100);
-      const local = Math.round(((ts.schema_markup?.found ? 1 : 0) + (ts.ga4 || ts.gtm ? 1 : 0) + (ts.lang_attr ? 1 : 0)) / 3 * 100);
-      const social = Math.round(((ts.open_graph?.found ? 1 : 0) + (ts.favicon ? 1 : 0)) / 2 * 100);
-      const comp = cs.overall_score || 0;
       const c = (s: number) => s < 40 ? "fill-red" : s < 75 ? "fill-yellow" : "fill-green";
+      const crawlerVals = Object.values(ts.robots_txt?.aiCrawlers || {}) as string[];
+      const crawlerPct = crawlerVals.length > 0 ? Math.round(crawlerVals.filter((v: string) => v !== "blocked").length / crawlerVals.length * 100) : 50;
+      const aiCitab = Math.round(
+        (crawlerPct * 0.3) +
+        ((ts.llms_txt?.found ? 1 : 0) * 20) +
+        (Math.min((ts.passage_quality?.optimal_sections || 0) / Math.max(ts.passage_quality?.total_sections || 1, 1) * 10, 10)) +
+        ((ts.entity_signals?.faq_detected ? 1 : 0) * 5)
+      );
+      const brandAuth = Math.round(
+        ((ts.entity_signals?.has_author ? 1 : 0) * 7) +
+        ((ts.entity_signals?.has_date ? 1 : 0) * 5) +
+        ((ts.entity_signals?.has_stats ? 1 : 0) * 5) +
+        ((ts.entity_signals?.entity_count_estimate || 0) >= 15 ? 3 : 0)
+      );
+      const contentQ = Math.round(
+        ((ts.meta_description?.found ? 1 : 0) * 5) +
+        ((ts.headings?.h1 || 0) >= 1 ? 5 : 0) +
+        ((ts.images?.total === 0 || (ts.images?.withAlt || 0) / Math.max(ts.images?.total || 1, 1) >= 0.8 ? 5 : 0)) +
+        ((ts.lang_attr ? 1 : 0) * 5)
+      );
+      const techBase = Math.round(((ts.https ? 5 : 0) + (ts.canonical?.found ? 3 : 0) + (ts.sitemap?.found ? 4 : 0) + (ts.robots_txt?.found ? 3 : 0)));
+      const structData = Math.round(((ts.schema_markup?.found ? 5 : 0) + ((ts.schema_markup?.types?.length || 0) > 1 ? 3 : 0) + ((ts.schema_markup?.fieldsCount || 0) > 5 ? 2 : 0)));
+      const platfOpt = Math.round(((ts.open_graph?.found ? 4 : 0) + (ts.meta_title?.found ? 3 : 0) + (ts.viewport ? 3 : 0)));
       return [
-        { label: "Technikai alapok", weight: 20, score: techBase, color: c(techBase) },
-        { label: "On-page optimalizálás", weight: 20, score: onPage, color: c(onPage) },
-        { label: "Helyi jelzések & schema", weight: 20, score: local, color: c(local) },
-        { label: "Social preview (OG)", weight: 20, score: social, color: c(social) },
-        { label: "Compliance alap", weight: 20, score: comp, color: c(comp) },
+        { label: "AI Citability & Visibility", weight: 25, score: Math.min(aiCitab, 100), color: c(Math.min(aiCitab, 100)) },
+        { label: "Brand Authority jelek", weight: 20, score: Math.min(brandAuth * 5, 100), color: c(Math.min(brandAuth * 5, 100)) },
+        { label: "Tartalom & E-E-A-T", weight: 20, score: contentQ * 5, color: c(contentQ * 5) },
+        { label: "Technikai alapok", weight: 15, score: Math.min(techBase * 6, 100), color: c(Math.min(techBase * 6, 100)) },
+        { label: "Strukturált adatok", weight: 10, score: structData * 10, color: c(structData * 10) },
+        { label: "Platform optimalizálás", weight: 10, score: platfOpt * 10, color: c(platfOpt * 10) },
       ];
     })(),
 
@@ -1003,6 +1350,10 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     });
   }
 
+  // Server-side inline rendering — zero external dependencies
+  const renderedHtml = renderHbs(PDF_TEMPLATE, templateData);
+  const templateB64 = btoa(unescape(encodeURIComponent(renderedHtml)));
+
   const res = await fetch("https://api.pdfbolt.com/v1/direct", {
     method: "POST",
     headers: { "API-KEY": apiKey, "Content-Type": "application/json" },
@@ -1043,15 +1394,26 @@ serve(async (req) => {
     const html = mainRes.text;
 
     const subPages = await fetchSubPages(html, url);
-    const robotsRes = await safeFetch(new URL("/robots.txt", url).href);
+    // Parallel fetches: robots.txt + sitemap + llms.txt
+    const [robotsRes, sitemapRes, llmsTxtResult] = await Promise.all([
+      safeFetch(new URL("/robots.txt", url).href),
+      safeFetch(new URL("/sitemap.xml", url).href),
+      fetchLlmsTxt(url),
+    ]);
     const robotsTxt = robotsRes?.status === 200 ? robotsRes.text : null;
-    const sitemapRes = await safeFetch(new URL("/sitemap.xml", url).href);
 
-    // 2. TECHNICAL SCAN
-    const technicalScan = runTechnicalScan(html, url, robotsTxt, sitemapRes?.status || null);
+    // 2. TECHNICAL SCAN (with llms.txt data)
+    const technicalScan = runTechnicalScan(html, url, robotsTxt, sitemapRes?.status || null, llmsTxtResult);
 
     // 3. COMPLIANCE SCAN
     const complianceScan = runComplianceScan(html, subPages, url);
+
+    // 3b. PERPLEXITY VISIBILITY CHECK (parallel with other work)
+    const perplexityResults = await checkPerplexityVisibility(
+      new URL(url).hostname.replace("www.", ""),
+      new URL(url).hostname.replace("www.", "").split(".")[0],
+      business_type
+    );
 
     // 4. SCORES
     const geoScore = calculateGeoScore(technicalScan);
@@ -1083,7 +1445,7 @@ serve(async (req) => {
 
     const agentResults = await runAllAgents(
       technicalScan, complianceScan, html, business_type, domain, brandName,
-      partnerData, audit_level, geoScore, marketingScore
+      partnerData, audit_level, geoScore, marketingScore, perplexityResults
     );
 
     // 6. BUILD JSON
@@ -1094,6 +1456,10 @@ serve(async (req) => {
       geo_score: geoScore, marketing_score: marketingScore,
       compliance_score: complianceScan.overall_score, compliance_grade: complianceScan.grade,
       technical_scan: technicalScan, compliance_scan: complianceScan,
+      perplexity_results: perplexityResults,
+      llms_txt_status: technicalScan.llms_txt,
+      passage_quality: technicalScan.passage_quality,
+      entity_signals: technicalScan.entity_signals,
       findings: agentResults.findings,
       strengths: agentResults.strengths,
       biggest_gaps: agentResults.biggest_gaps,
