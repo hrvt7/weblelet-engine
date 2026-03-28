@@ -571,7 +571,11 @@ Válasz: {"intro": "...", "top3": ["...","...","..."], "steps": ["...","...","..
 };
 
 async function callAgent(agentName: string, input: Record<string, any>): Promise<any> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    console.error(`[callAgent] ANTHROPIC_API_KEY is not set!`);
+    throw new Error("ANTHROPIC_API_KEY environment variable is missing");
+  }
   const systemPrompt = AGENT_PROMPTS[agentName];
   if (!systemPrompt) throw new Error(`Unknown agent: ${agentName}`);
 
@@ -583,7 +587,7 @@ async function callAgent(agentName: string, input: Record<string, any>): Promise
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: "user", content: JSON.stringify(input) }],
@@ -591,6 +595,12 @@ async function callAgent(agentName: string, input: Record<string, any>): Promise
   });
 
   const data = await res.json();
+
+  if (!res.ok) {
+    console.error(`[callAgent] API ERROR for ${agentName}: status=${res.status}, error=${JSON.stringify(data)}`);
+    throw new Error(`Anthropic API error ${res.status}: ${data?.error?.message || JSON.stringify(data)}`);
+  }
+
   const text = data.content?.[0]?.text || "{}";
   const tokensUsed = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
 
@@ -972,8 +982,13 @@ serve(async (req) => {
 
       const retryValidation = validateAuditJson(auditJson);
       if (!retryValidation.passed) {
-        await updateStatus("failed", { audit_json: auditJson, validation_result: retryValidation, error_message: retryValidation.errors.join("; ") });
-        return new Response(JSON.stringify({ error: "Validation failed after retry" }), { status: 500 });
+        // szint1 (public free audit): ne álljunk le, generáljuk a PDF-et a meglévő adatokkal
+        if (audit_level === "szint1") {
+          console.warn("szint1 validation warning (continuing to PDF):", retryValidation.errors.join("; "));
+        } else {
+          await updateStatus("failed", { audit_json: auditJson, validation_result: retryValidation, error_message: retryValidation.errors.join("; ") });
+          return new Response(JSON.stringify({ error: "Validation failed after retry" }), { status: 500 });
+        }
       }
     }
 
