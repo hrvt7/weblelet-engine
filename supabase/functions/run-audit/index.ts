@@ -764,7 +764,9 @@ function validateAuditJson(data: any): { passed: boolean; errors: string[] } {
 // ═══ PDF GENERATION ═══
 async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint8Array> {
   const apiKey = Deno.env.get("PDFBOLT_API_KEY")!;
-  const TEMPLATE_ID = "aea16618-09eb-4232-b7fd-889ddfd2cb1f";
+  // Load template from local file (allows updates without PDFBolt dashboard)
+  const templateHtml = await Deno.readTextFile(new URL("./template.html", import.meta.url));
+  const templateB64 = btoa(unescape(encodeURIComponent(templateHtml)));
 
   // Az audit JSON-t templateData-ként küldjük a PDFBolt template-nek
   const templateData = {
@@ -793,6 +795,33 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     
     // Findings
     findings: (auditJson.findings || []).map((f: any) => ({
+      severity: f.severity || "",
+      tag: f.tag || "",
+      title: f.title || "",
+      border_class: f.severity === "KRITIKUS" ? "f-critical" : f.severity === "MAGAS" ? "f-high" : "f-medium",
+      sev_class: f.severity === "KRITIKUS" ? "b-critical" : f.severity === "MAGAS" ? "b-high" : "b-medium",
+      evidence: f.evidence || "",
+      why_problem: f.why_problem || "",
+      business_impact: f.business_impact || "",
+      fix: f.fix || "",
+      fix_effort: f.fix_effort || "",
+      priority: f.priority || "",
+    })),
+    // Pre-sliced findings for specific pages (avoids Handlebars @second / limit issues)
+    findings_p2: (auditJson.findings || []).slice(0, 2).map((f: any) => ({
+      severity: f.severity || "",
+      tag: f.tag || "",
+      title: f.title || "",
+      border_class: f.severity === "KRITIKUS" ? "f-critical" : f.severity === "MAGAS" ? "f-high" : "f-medium",
+      sev_class: f.severity === "KRITIKUS" ? "b-critical" : f.severity === "MAGAS" ? "b-high" : "b-medium",
+      evidence: f.evidence || "",
+      why_problem: f.why_problem || "",
+      business_impact: f.business_impact || "",
+      fix: f.fix || "",
+      fix_effort: f.fix_effort || "",
+      priority: f.priority || "",
+    })),
+    findings_p3: (auditJson.findings || []).slice(2, 6).map((f: any) => ({
       severity: f.severity || "",
       tag: f.tag || "",
       title: f.title || "",
@@ -854,7 +883,7 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     method: "POST",
     headers: { "API-KEY": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
-      templateId: TEMPLATE_ID,
+      html: templateB64,
       templateData: templateData,
     }),
   });
