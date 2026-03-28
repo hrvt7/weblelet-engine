@@ -1,8 +1,7 @@
-import type { AuditLevel, AuditJSON, ValidationResult, AuditModules } from "@/lib/types";
+import type { AuditLevel, AuditJSON, ValidationResult, AuditModules, TechnicalScan } from "@/lib/types";
 import { fetchUrl } from "./fetcher";
 import { runTechnicalScan } from "./scanners/technical";
-import { runComplianceScan } from "./scanners/compliance";
-import { calculateGeoScore, calculateMarketingScore } from "./scanners/scores";
+import { calculateGeoScore, calculateSeoScore } from "./scanners/scores";
 import { runLLMAnalysis } from "./llm/analyzer";
 import { buildAuditJSON } from "./builder";
 import { validateAuditJSON } from "./validator";
@@ -11,8 +10,7 @@ export interface OrchestratorResult {
   auditJson: AuditJSON;
   validation: ValidationResult;
   rawHtml: string;
-  technicalScan: ReturnType<typeof runTechnicalScan>;
-  complianceScan: ReturnType<typeof runComplianceScan>;
+  technicalScan: TechnicalScan;
   tokensUsed: number;
   processingTimeMs: number;
 }
@@ -37,14 +35,11 @@ export async function runAuditPipeline(
   // Phase 2: Technical scan (deterministic)
   const technicalScan = runTechnicalScan(fetchResult);
 
-  // Phase 3: Compliance scan (deterministic)
-  const complianceScan = runComplianceScan(fetchResult);
-
-  // Phase 4: Score calculation (deterministic)
+  // Phase 3: Score calculation (deterministic)
   const geoScore = calculateGeoScore(technicalScan);
-  const marketingScore = calculateMarketingScore(technicalScan);
+  const seoScore = calculateSeoScore(technicalScan);
 
-  // Phase 5: LLM analysis (with retry on validation failure)
+  // Phase 4: LLM analysis (with retry on validation failure)
   await onStatus?.("analyzing");
   let tokensUsed = 0;
   let auditJson: AuditJSON | null = null;
@@ -56,30 +51,26 @@ export async function runAuditPipeline(
       domain: new URL(url).hostname,
       businessType,
       technicalScan,
-      complianceScan,
       geoScore,
-      marketingScore,
-      complianceScore: complianceScan.overall_score,
-      complianceGrade: complianceScan.grade,
+      seoScore,
     });
 
     tokensUsed += llmResult.tokensUsed;
 
-    // Phase 6: Build audit JSON
+    // Phase 5: Build audit JSON
     auditJson = buildAuditJSON({
       url,
       businessType,
       level,
       technicalScan,
-      complianceScan,
       llmAnalysis: llmResult.analysis,
       geoScore,
-      marketingScore,
+      seoScore,
     });
 
-    // Phase 7: Validate
+    // Phase 6: Validate
     await onStatus?.("validating");
-    validation = validateAuditJSON(auditJson, level);
+    validation = validateAuditJSON(auditJson);
 
     if (validation.passed) break;
 
@@ -97,7 +88,6 @@ export async function runAuditPipeline(
     validation,
     rawHtml: fetchResult.html,
     technicalScan,
-    complianceScan,
     tokensUsed,
     processingTimeMs: Date.now() - startTime,
   };

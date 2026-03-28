@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LLMAnalysis, TechnicalScan, ComplianceScan } from "@/lib/types";
+import type { LLMAnalysis, TechnicalScan } from "@/lib/types";
 import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts";
 
 const MODEL = "claude-sonnet-4-20250514";
@@ -9,11 +9,8 @@ export async function runLLMAnalysis(params: {
   domain: string;
   businessType: string;
   technicalScan: TechnicalScan;
-  complianceScan: ComplianceScan;
   geoScore: number;
-  marketingScore: number;
-  complianceScore: number;
-  complianceGrade: string;
+  seoScore: number;
 }): Promise<{ analysis: LLMAnalysis; tokensUsed: number }> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -22,11 +19,8 @@ export async function runLLMAnalysis(params: {
     domain: params.domain,
     businessType: params.businessType,
     technicalScan: params.technicalScan as unknown as Record<string, unknown>,
-    complianceScan: params.complianceScan as unknown as Record<string, unknown>,
     geoScore: params.geoScore,
-    marketingScore: params.marketingScore,
-    complianceScore: params.complianceScore,
-    complianceGrade: params.complianceGrade,
+    seoScore: params.seoScore,
   });
 
   const response = await client.messages.create({

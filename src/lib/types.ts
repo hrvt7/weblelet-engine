@@ -12,33 +12,20 @@ export interface Client {
 }
 
 export interface AuditModules {
-  geo_seo: {
+  geo: {
     crawler_access: boolean;
     schema_markup: boolean;
-    technical_seo: boolean;
     citability: boolean;
     brand_mentions: boolean;
     platform_check: boolean;
     llmstxt: boolean;
   };
-  marketing: {
-    content_quality: boolean;
-    conversion: boolean;
-    competitor: boolean;
-    brand_trust: boolean;
-  };
-  compliance: {
-    gdpr: boolean;
-    hungarian_legal: boolean;
-    accessibility: boolean;
-    pci_dss: boolean;
-    can_spam: boolean;
-  };
-  sales: {
-    company_research: boolean;
-    contacts: boolean;
-    lead_scoring: boolean;
-    outreach: boolean;
+  seo: {
+    technical_seo: boolean;
+    on_page: boolean;
+    performance: boolean;
+    crawlability: boolean;
+    internal_linking: boolean;
   };
 }
 
@@ -55,15 +42,11 @@ export interface Audit {
   modules: AuditModules;
   raw_html: string | null;
   technical_scan: TechnicalScan | null;
-  compliance_scan: ComplianceScan | null;
   llm_analysis: LLMAnalysis | null;
   audit_json: AuditJSON | null;
   validation_result: ValidationResult | null;
   geo_score: number | null;
-  marketing_score: number | null;
-  compliance_score: number | null;
-  compliance_grade: string | null;
-  sales_score: number | null;
+  seo_score: number | null;
   pdf_path: string | null;
   pdf_generated_at: string | null;
   partner_data: Record<string, unknown> | null;
@@ -107,33 +90,6 @@ export interface TechnicalScan {
   favicon: boolean;
 }
 
-// ═══ COMPLIANCE SCAN ═══
-
-export interface ComplianceCheckResult {
-  id: string;
-  label: string;
-  passed: boolean;
-  details: string;
-}
-
-export interface FrameworkResult {
-  name: string;
-  checks: ComplianceCheckResult[];
-  score: number; // 0-100
-  maxPoints: number;
-  passedPoints: number;
-}
-
-export interface ComplianceScan {
-  gdpr: FrameworkResult;
-  hungarian: FrameworkResult;
-  accessibility: FrameworkResult;
-  pci: FrameworkResult;
-  canspam: FrameworkResult;
-  overall_score: number;
-  grade: string; // A-F
-}
-
 // ═══ LLM ANALYSIS ═══
 
 export interface Finding {
@@ -153,7 +109,7 @@ export interface QuickWin {
   who: string;
   time: string;
   cost: string;
-  type: "üzleti" | "jogi" | "technikai";
+  type: "geo" | "seo" | "technikai";
 }
 
 export interface LLMAnalysis {
@@ -177,10 +133,7 @@ export interface AuditJSON {
   business_type: string;
   audit_level: AuditLevel;
   geo_score: number;
-  marketing_score: number;
-  compliance_score: number;
-  compliance_grade: string;
-  sales_score?: number;
+  seo_score: number;
   findings: Finding[];
   quick_wins: QuickWin[];
   strengths: string[];
@@ -188,35 +141,8 @@ export interface AuditJSON {
   fastest_fixes: string[];
   layman_summary: string;
   technical_scan: TechnicalScan;
-  compliance_scan: ComplianceScan;
   schema_code: string | null;
   llms_txt: string | null;
-  // Szint 2 extras
-  proposal_packages?: ProposalPackage[];
-  action_plan?: ActionPhase[];
-  competitors?: Competitor[];
-  outreach_strategy?: Record<string, unknown>;
-}
-
-export interface ProposalPackage {
-  name: string;
-  price: string;
-  description: string;
-  features: string[];
-  timeline: string;
-}
-
-export interface ActionPhase {
-  phase: string;
-  timeframe: string;
-  tasks: { task: string; who: string; effort: string }[];
-}
-
-export interface Competitor {
-  name: string;
-  url: string;
-  strengths: string[];
-  weaknesses: string[];
 }
 
 // ═══ VALIDATION ═══

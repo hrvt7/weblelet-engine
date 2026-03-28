@@ -26,7 +26,7 @@ function scoreColor(s: number | null) {
 export default function Dashboard() {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, thisWeek: 0, avgGeo: 0, avgCompliance: 0 });
+  const [stats, setStats] = useState({ total: 0, thisWeek: 0, avgGeo: 0, avgSeo: 0 });
 
   useEffect(() => {
     async function load() {
@@ -39,8 +39,8 @@ export default function Dashboard() {
       const thisWeek = all.filter(a => a.created_at > weekAgo);
       const completed = all.filter(a => a.geo_score !== null);
       const avgGeo = completed.length ? Math.round(completed.reduce((s, a) => s + (a.geo_score || 0), 0) / completed.length) : 0;
-      const avgC = completed.length ? Math.round(completed.reduce((s, a) => s + (a.compliance_score || 0), 0) / completed.length) : 0;
-      setStats({ total: all.length, thisWeek: thisWeek.length, avgGeo, avgCompliance: avgC });
+      const avgSeo = completed.length ? Math.round(completed.reduce((s, a) => s + (a.seo_score || 0), 0) / completed.length) : 0;
+      setStats({ total: all.length, thisWeek: thisWeek.length, avgGeo, avgSeo });
       setLoading(false);
     }
     load();
@@ -63,7 +63,7 @@ export default function Dashboard() {
           { label: "ÖSSZES AUDIT", value: stats.total, color: "var(--accent)", gradient: "rgba(0,229,160,0.09), rgba(76,201,240,0.04)" },
           { label: "EZEN A HÉTEN", value: stats.thisWeek, color: "var(--blue)", gradient: "rgba(76,201,240,0.09), rgba(0,229,160,0.04)" },
           { label: "ÁTLAG GEO", value: stats.avgGeo, color: scoreColor(stats.avgGeo), gradient: "rgba(255,209,102,0.06), rgba(0,229,160,0.03)" },
-          { label: "ÁTLAG COMPLIANCE", value: stats.avgCompliance, color: scoreColor(stats.avgCompliance), gradient: "rgba(255,107,107,0.06), rgba(255,209,102,0.03)" },
+          { label: "ÁTLAG SEO", value: stats.avgSeo, color: scoreColor(stats.avgSeo), gradient: "rgba(76,201,240,0.06), rgba(0,229,160,0.03)" },
         ].map((kpi) => (
           <div key={kpi.label} style={{
             background: `linear-gradient(135deg, ${kpi.gradient})`,
@@ -94,7 +94,7 @@ export default function Dashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["Domain", "Szint", "GEO", "Marketing", "Compliance", "Státusz", "Dátum", ""].map(h => (
+                {["Domain", "Szint", "GEO", "SEO", "Státusz", "Dátum", ""].map(h => (
                   <th key={h} className="label-mono px-4 py-3 text-left">{h}</th>
                 ))}
               </tr>
@@ -113,10 +113,7 @@ export default function Dashboard() {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs" style={{ color: "var(--text-sub)" }}>{a.audit_level === "szint2" ? "S2" : "S1"}</td>
                     <td className="px-4 py-3 font-mono text-xs font-bold" style={{ color: scoreColor(a.geo_score) }}>{a.geo_score ?? "–"}</td>
-                    <td className="px-4 py-3 font-mono text-xs font-bold" style={{ color: scoreColor(a.marketing_score) }}>{a.marketing_score ?? "–"}</td>
-                    <td className="px-4 py-3 font-mono text-xs font-bold" style={{ color: scoreColor(a.compliance_score) }}>
-                      {a.compliance_score !== null ? `${a.compliance_score} ${a.compliance_grade}` : "–"}
-                    </td>
+                    <td className="px-4 py-3 font-mono text-xs font-bold" style={{ color: scoreColor(a.seo_score) }}>{a.seo_score ?? "–"}</td>
                     <td className="px-4 py-3">
                       <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}`, borderRadius: 6, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono'" }}>{st.label}</span>
                     </td>

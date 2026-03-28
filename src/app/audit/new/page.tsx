@@ -107,8 +107,8 @@ export default function NewAuditPage() {
             <p className="label-mono mb-3">AUDIT SZINT</p>
             <div className="grid grid-cols-2 gap-3">
               {([
-                { v: "szint1" as AuditLevel, l: "Szint 1 — Diagnózis", d: "~10 oldalas PDF, nyilvános adatok" },
-                { v: "szint2" as AuditLevel, l: "Szint 2 — Teljes audit", d: "~15+ oldalas PDF + Sales + Proposal" },
+                { v: "szint1" as AuditLevel, l: "Szint 1 — GEO Scan", d: "GEO + SEO diagnózis PDF" },
+                { v: "szint2" as AuditLevel, l: "Szint 2 — Teljes GEO+SEO audit", d: "Részletes audit + schema kód + implementációs terv" },
               ]).map(o => (
                 <button key={o.v} type="button" onClick={() => setLevel(o.v)}
                   style={{
@@ -129,38 +129,21 @@ export default function NewAuditPage() {
           <p className="label-mono mb-4">MODULOK</p>
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <p className="font-mono text-[10px] font-bold mb-1" style={{ color: "var(--accent)" }}>GEO / SEO</p>
-              <Checkbox label="AI Crawler hozzáférés" checked={modules.geo_seo.crawler_access} onChange={v => updateModule("geo_seo","crawler_access",v)} />
-              <Checkbox label="Schema markup" checked={modules.geo_seo.schema_markup} onChange={v => updateModule("geo_seo","schema_markup",v)} />
-              <Checkbox label="Technikai SEO" checked={modules.geo_seo.technical_seo} onChange={v => updateModule("geo_seo","technical_seo",v)} />
-              <Checkbox label="AI idézhetőség" checked={modules.geo_seo.citability} onChange={v => updateModule("geo_seo","citability",v)} />
-              <Checkbox label="Brand jelenlét" checked={modules.geo_seo.brand_mentions} onChange={v => updateModule("geo_seo","brand_mentions",v)} />
-              <Checkbox label="AI platform elemzés" checked={modules.geo_seo.platform_check} onChange={v => updateModule("geo_seo","platform_check",v)} />
-              <Checkbox label="llms.txt" checked={modules.geo_seo.llmstxt} onChange={v => updateModule("geo_seo","llmstxt",v)} />
+              <p className="font-mono text-[10px] font-bold mb-1" style={{ color: "var(--accent)" }}>GEO — AI LÁTHATÓSÁG</p>
+              <Checkbox label="AI Crawler hozzáférés" checked={modules.geo.crawler_access} onChange={v => updateModule("geo","crawler_access",v)} />
+              <Checkbox label="Schema markup" checked={modules.geo.schema_markup} onChange={v => updateModule("geo","schema_markup",v)} />
+              <Checkbox label="AI idézhetőség" checked={modules.geo.citability} onChange={v => updateModule("geo","citability",v)} />
+              <Checkbox label="Brand jelenlét" checked={modules.geo.brand_mentions} onChange={v => updateModule("geo","brand_mentions",v)} />
+              <Checkbox label="AI platform elemzés" checked={modules.geo.platform_check} onChange={v => updateModule("geo","platform_check",v)} />
+              <Checkbox label="llms.txt" checked={modules.geo.llmstxt} onChange={v => updateModule("geo","llmstxt",v)} />
             </div>
             <div className="space-y-2">
-              <p className="font-mono text-[10px] font-bold mb-1" style={{ color: "var(--yellow)" }}>MARKETING</p>
-              <Checkbox label="Tartalom (E-E-A-T)" checked={modules.marketing.content_quality} onChange={v => updateModule("marketing","content_quality",v)} />
-              <Checkbox label="Konverzió (CTA, UX)" checked={modules.marketing.conversion} onChange={v => updateModule("marketing","conversion",v)} />
-              <Checkbox label="Versenytárs" checked={modules.marketing.competitor} onChange={v => updateModule("marketing","competitor",v)} />
-              <Checkbox label="Brand & Trust" checked={modules.marketing.brand_trust} onChange={v => updateModule("marketing","brand_trust",v)} />
-            </div>
-            <div className="space-y-2">
-              <p className="font-mono text-[10px] font-bold mb-1" style={{ color: "var(--blue)" }}>JOGI MEGFELELŐSÉG</p>
-              <Checkbox label="GDPR (14 pont)" checked={modules.compliance.gdpr} onChange={v => updateModule("compliance","gdpr",v)} />
-              <Checkbox label="Magyar jogi (8 pont)" checked={modules.compliance.hungarian_legal} onChange={v => updateModule("compliance","hungarian_legal",v)} />
-              <Checkbox label="Akadálymentesség (10)" checked={modules.compliance.accessibility} onChange={v => updateModule("compliance","accessibility",v)} />
-              <Checkbox label="Fizetési biztonság (6)" checked={modules.compliance.pci_dss} onChange={v => updateModule("compliance","pci_dss",v)} />
-              <Checkbox label="E-mail (5 pont)" checked={modules.compliance.can_spam} onChange={v => updateModule("compliance","can_spam",v)} />
-            </div>
-            <div className="space-y-2">
-              <p className="font-mono text-[10px] font-bold mb-1" style={{ color: level === "szint2" ? "var(--accent)" : "var(--muted)" }}>
-                SALES {level === "szint1" && <span style={{ fontSize: 9, fontWeight: 400 }}>(Szint 2)</span>}
-              </p>
-              <Checkbox label="Cég kutatás" checked={modules.sales.company_research} onChange={v => updateModule("sales","company_research",v)} disabled={level === "szint1"} />
-              <Checkbox label="Döntéshozó" checked={modules.sales.contacts} onChange={v => updateModule("sales","contacts",v)} disabled={level === "szint1"} />
-              <Checkbox label="Lead scoring" checked={modules.sales.lead_scoring} onChange={v => updateModule("sales","lead_scoring",v)} disabled={level === "szint1"} />
-              <Checkbox label="Megkeresés" checked={modules.sales.outreach} onChange={v => updateModule("sales","outreach",v)} disabled={level === "szint1"} />
+              <p className="font-mono text-[10px] font-bold mb-1" style={{ color: "var(--blue)" }}>SEO — KERESŐOPTIMALIZÁLÁS</p>
+              <Checkbox label="Technikai SEO" checked={modules.seo.technical_seo} onChange={v => updateModule("seo","technical_seo",v)} />
+              <Checkbox label="On-page SEO" checked={modules.seo.on_page} onChange={v => updateModule("seo","on_page",v)} />
+              <Checkbox label="Teljesítmény (CWV)" checked={modules.seo.performance} onChange={v => updateModule("seo","performance",v)} />
+              <Checkbox label="Feltérképezhetőség" checked={modules.seo.crawlability} onChange={v => updateModule("seo","crawlability",v)} />
+              <Checkbox label="Belső linkelés" checked={modules.seo.internal_linking} onChange={v => updateModule("seo","internal_linking",v)} />
             </div>
           </div>
         </div>

@@ -74,15 +74,7 @@ export function renderAuditHTML(data: AuditJSON, config: AuditConfig): string {
     crawlerEntries: data.technical_scan?.robots_txt?.aiCrawlers
       ? Object.entries(data.technical_scan.robots_txt.aiCrawlers).map(([name, status]) => ({ name, status }))
       : [],
-    complianceFrameworks: data.compliance_scan
-      ? [
-          data.compliance_scan.gdpr,
-          data.compliance_scan.hungarian,
-          data.compliance_scan.accessibility,
-          data.compliance_scan.pci,
-          data.compliance_scan.canspam,
-        ]
-      : [],
+    seoScore: data.seo_score,
   };
 
   return baseTemplate(context);

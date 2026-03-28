@@ -221,8 +221,8 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
   font-weight: bold;
   margin-left: 6px;
 }
-.qw-type.uzleti    { background: #dbeafe; color: #1d4ed8; }
-.qw-type.jogi      { background: #fef3c7; color: #92400e; }
+.qw-type.geo       { background: #ede9fe; color: #6d28d9; }
+.qw-type.seo       { background: #dbeafe; color: #1d4ed8; }
 .qw-type.technikai { background: #d1fae5; color: #065f46; }
 
 /* ── Score bar ────────────────────────────────────────────── */
@@ -326,26 +326,6 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
 .score-table tr:nth-child(even) td { background: #f8fafc; }
 .score-table .td-score { font-weight: bold; font-size: 14px; }
 
-/* ── Compliance mini table ───────────────────────────────── */
-.compliance-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 7px 0;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 10.5px;
-}
-.compliance-row:last-child { border-bottom: none; }
-.cr-name  { color: #334155; flex: 1; }
-.cr-badge {
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 10px;
-  border-radius: 4px;
-}
-.cr-pass { background: #d1fae5; color: #065f46; }
-.cr-fail { background: #fee2e2; color: #991b1b; }
-.cr-warn { background: #fef3c7; color: #92400e; }
 
 /* ── Disclaimer ──────────────────────────────────────────── */
 .disclaimer {
@@ -385,6 +365,12 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
       <circle cx="65" cy="65" r="54" fill="#162440" stroke="#10b981" stroke-width="5"/>
       <text x="65" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{ai_citability_score}}</text>
       <text x="65" y="106" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#aab4c8">AI CITABILITY</text>
+    </svg>
+    <!-- SEO SCORE -->
+    <svg width="130" height="155" viewBox="0 0 130 155">
+      <circle cx="65" cy="65" r="54" fill="#162440" stroke="#3b82f6" stroke-width="5"/>
+      <text x="65" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white">{{seo_score}}</text>
+      <text x="65" y="110" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#aab4c8" letter-spacing="1">SEO SCORE</text>
     </svg>
     <!-- BRAND AUTHORITY -->
     <svg width="130" height="155" viewBox="0 0 130 155">
@@ -582,38 +568,31 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
       {{/each}}
     </div>
 
-    <!-- RIGHT: GEO módszertan + compliance mini -->
+    <!-- RIGHT: SEO Score + módszertan -->
     <div>
-      <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
-        <p style="font-size:9.5px;font-weight:bold;color:#3730a3;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">GEO Pontszám módszertana</p>
-        <div style="font-size:8.5px;color:#475569;line-height:1.8;">
-          <div>🔵 <strong>AI Citability (25%)</strong> — AI robot hozzáférés, llms.txt, passage</div>
-          <div>🟡 <strong>Brand Authority (20%)</strong> — szerző, dátum, statisztikák</div>
-          <div>🟢 <strong>Tartalom and E-E-A-T (20%)</strong> — meta, heading, alt, nyelv</div>
-          <div>⚙️ <strong>Technikai alap (15%)</strong> — HTTPS, canonical, sitemap</div>
-          <div>📋 <strong>Strukturált adat (10%)</strong> — schema, JSON-LD</div>
-          <div>📡 <strong>Platform opt. (10%)</strong> — OG tagek, meta title</div>
+      <h2 class="section-title" style="font-size:13px;">SEO Score — {{seo_score}}/100</h2>
+      {{#each seo_categories}}
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <span style="font-size:9.5px;color:#334155;font-weight:600;">{{label}}</span>
+          <span style="font-size:10px;font-weight:bold;color:#162440;">{{score}}<span style="font-size:8px;color:#94a3b8;font-weight:normal;">/100</span></span>
         </div>
-        <p style="font-size:7.5px;color:#6366f1;margin-top:8px;border-top:1px solid #c7d2fe;padding-top:6px;">Princeton/IIT Delhi GEO kutatás (KDD 24) + piaci standardok alapján.</p>
+        <div style="background:#e8ecf0;border-radius:3px;height:7px;">
+          <div class="sb-fill {{color}}" style="width:{{score}}%;height:7px;border-radius:3px;"></div>
+        </div>
       </div>
-      <div>
-        <p style="font-size:9.5px;font-weight:bold;color:#162440;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">GEO Technikai Jelek</p>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
-          <span style="font-size:8.5px;color:#334155;flex:1;">llms.txt</span>
-          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{llms_txt_label}}</span>
+      {{/each}}
+
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-top:14px;">
+        <p style="font-size:9.5px;font-weight:bold;color:#1d4ed8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Módszertan</p>
+        <div style="font-size:8.5px;color:#475569;line-height:1.8;">
+          <div><strong>GEO (25+20+20+15+10+10)</strong></div>
+          <div>AI Citability 25% · Brand Auth. 20% · E-E-A-T 20%</div>
+          <div>Technikai 15% · Schema 10% · Platform 10%</div>
+          <div style="margin-top:4px;"><strong>SEO (35+30+20+15)</strong></div>
+          <div>Technikai 35% · Tartalom 30% · Teljesítmény 20% · Authority 15%</div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
-          <span style="font-size:8.5px;color:#334155;flex:1;">Perplexity láthatóság</span>
-          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{perplexity_label}}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #f1f5f9;gap:6px;">
-          <span style="font-size:8.5px;color:#334155;flex:1;">Brand Authority jelek</span>
-          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{entity_label}}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;gap:6px;">
-          <span style="font-size:8.5px;color:#334155;flex:1;">Passage minőség</span>
-          <span style="font-size:8px;font-weight:600;text-align:right;flex-shrink:0;max-width:60%;">{{passage_label}}</span>
-        </div>
+        <p style="font-size:7.5px;color:#3b82f6;margin-top:8px;border-top:1px solid #bfdbfe;padding-top:6px;">Princeton/IIT Delhi GEO kutatás (KDD 24) + piaci standardok alapján.</p>
       </div>
     </div>
   </div>
@@ -678,6 +657,11 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
           <td style="padding:5px 8px;text-align:center;font-size:9px;">{{geo_status_label}}</td>
         </tr>
         <tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:5px 8px;color:#334155;">SEO Score</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{seo_score}}/100</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{seo_status_label}}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f1f5f9;">
           <td style="padding:5px 8px;color:#334155;">AI Citability</td>
           <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{ai_citability_score}}/100</td>
           <td style="padding:5px 8px;text-align:center;font-size:9px;">{{perplexity_label}}</td>
@@ -718,11 +702,11 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
         <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#6366f1;">✓</span> Perplexity valós citáció mérés</div>
       </div>
       <div style="flex:1;">
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Schema markup (JSON-LD), OG tagek</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Canonical, sitemap.xml, HTTPS</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Meta title, description, heading struktúra</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> Brand Authority jelek és entitás konsisztencia</div>
-        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#10b981;">→</span> 5 AI platform readiness becslés</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#3b82f6;">→</span> Technikai SEO: canonical, sitemap, HTTPS, robots</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#3b82f6;">→</span> On-page SEO: meta title, description, heading struktúra</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#3b82f6;">→</span> Teljesítmény: Core Web Vitals proxy, mobilbarátság</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#3b82f6;">→</span> Schema markup (JSON-LD), OG tagek, strukturált adatok</div>
+        <div style="display:flex;gap:5px;margin-bottom:4px;font-size:8.5px;color:#475569;"><span style="color:#3b82f6;">→</span> 5 AI platform readiness + Perplexity valós mérés</div>
       </div>
     </div>
   </div>

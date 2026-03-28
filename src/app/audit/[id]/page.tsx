@@ -129,11 +129,9 @@ export default function AuditResultPage() {
 
       {/* Scores */}
       {audit.geo_score !== null && (
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <ScoreGauge label="GEO/SEO" score={audit.geo_score} />
-          <ScoreGauge label="Marketing" score={audit.marketing_score} />
-          <ScoreGauge label="Compliance" score={audit.compliance_score} grade={audit.compliance_grade} />
-          <ScoreGauge label="Sales" score={audit.sales_score} />
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <ScoreGauge label="GEO" score={audit.geo_score} />
+          <ScoreGauge label="SEO" score={audit.seo_score} />
         </div>
       )}
 

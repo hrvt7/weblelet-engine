@@ -28,32 +28,12 @@ interface TechnicalScan {
   entity_signals: { has_author: boolean; has_date: boolean; has_stats: boolean; faq_detected: boolean; entity_count_estimate: number };
 }
 
-interface FrameworkResult {
-  name: string;
-  score: number;
-  maxPoints: number;
-  passedPoints: number;
-  checks: { id: string; label: string; passed: boolean; details: string }[];
-}
-
-interface ComplianceScan {
-  gdpr: FrameworkResult;
-  hungarian: FrameworkResult;
-  accessibility: FrameworkResult;
-  pci: FrameworkResult;
-  canspam: FrameworkResult;
-  overall_score: number;
-  grade: string;
-}
-
 // ═══ CONSTANTS ═══
 const AI_CRAWLERS = [
   "GPTBot", "ChatGPT-User", "Google-Extended", "Googlebot", "Bingbot",
   "PerplexityBot", "ClaudeBot", "Anthropic-ai", "cohere-ai",
   "Meta-ExternalAgent", "Meta-ExternalFetcher", "Bytespider", "CCBot", "Applebot",
 ];
-
-const COMPLIANCE_WEIGHTS = { gdpr: 0.30, hungarian: 0.25, accessibility: 0.15, pci: 0.15, canspam: 0.15 };
 
 const FORBIDDEN_REPLACEMENTS: Record<string, string> = {
   "teljes elvesztés": "jelentős romlás",
@@ -357,119 +337,10 @@ function runTechnicalScan(html: string, url: string, robotsTxt: string | null, s
   };
 }
 
-// ═══ COMPLIANCE SCANNERS ═══
-function scanGDPR(allText: string, privacyText: string, mainHtml: string): FrameworkResult {
-  const checks = [
-    { id: "G1", label: "Cookie consent banner", passed: textContains(mainHtml, ["cookie", "consent", "cookiebot", "onetrust", "klaro", "cc-banner"]) },
-    { id: "G2", label: "Granulált cookie beállítás", passed: textContains(mainHtml, ["beállítások", "settings", "preferences"]) },
-    { id: "G3", label: "Adatvédelmi tájékoztató", passed: textContains(allText, ["privacy", "adatvéd", "adatkezel"]) },
-    { id: "G4", label: "Jogalap megjelölve", passed: textContains(privacyText || allText, ["jogalap", "hozzájárulás", "jogos érdek"]) },
-    { id: "G5", label: "Érintetti jogok", passed: textContains(privacyText || allText, ["törlés", "hozzáférés", "helyesbítés"]) },
-    { id: "G6", label: "Törlési eljárás", passed: textContains(privacyText || allText, ["törlés", "kérelem", "delete", "erasure"]) },
-    { id: "G7", label: "Adathordozhatóság", passed: textContains(privacyText || allText, ["hordozhatóság", "portability"]) },
-    { id: "G8", label: "DPO", passed: textContains(allText, ["adatvédelmi felelős", "dpo", "data protection officer"]) },
-    { id: "G9", label: "Nemzetközi adattovábbítás", passed: textContains(privacyText || allText, ["továbbítás", "transfer", "egt"]) },
-    { id: "G10", label: "Incidens kezelés", passed: textContains(privacyText || allText, ["incidens", "breach", "72 óra"]) },
-    { id: "G11", label: "Hozzájárulás visszavonása", passed: textContains(privacyText || allText, ["visszavon", "withdraw"]) },
-    { id: "G12", label: "Harmadik felek", passed: textContains(privacyText || allText, ["harmadik", "third party", "adatfeldolgozó"]) },
-    { id: "G13", label: "Adatmegőrzési idő", passed: textContains(privacyText || allText, ["megőrzés", "retention"]) },
-    { id: "G14", label: "Sütitájékoztató részletesség", passed: textContains(allText, ["süti", "cookie"]) && textContains(allText, ["cél", "purpose"]) },
-  ].map(c => ({ ...c, details: c.label }));
-  const passedPoints = checks.filter(c => c.passed).length;
-  return { name: "GDPR", checks, score: Math.round((passedPoints / checks.length) * 100), maxPoints: checks.length, passedPoints };
-}
-
-function scanHungarian(allText: string): FrameworkResult {
-  const checks = [
-    { id: "H1", label: "Impresszum", passed: textContains(allText, ["impresszum"]) || (textContains(allText, ["cégnév", "székhely"]) && textContains(allText, ["adószám", "cégjegyzékszám"])) },
-    { id: "H2", label: "ÁSZF", passed: textContains(allText, ["ászf", "általános szerződési", "felhasználási feltételek"]) },
-    { id: "H3", label: "Magyar adatvédelmi tájékoztató", passed: textContains(allText, ["adatvédelmi tájékoztató", "adatkezelési tájékoztató"]) },
-    { id: "H4", label: "Fogyasztóvédelmi tájékoztató", passed: textContains(allText, ["elállás", "békéltető", "fogyasztóvéd", "panasz"]) },
-    { id: "H5", label: "Magyar sütitájékoztató", passed: textContains(allText, ["süti"]) && textContains(allText, ["tájékoztató", "nyilatkozat"]) },
-    { id: "H6", label: "NAIH hivatkozás", passed: textContains(allText, ["naih", "nyilvántartási szám", "adatvédelmi hatóság"]) },
-    { id: "H7", label: "Tárhelyszolgáltató", passed: textContains(allText, ["tárhelyszolgáltató", "hosting"]) },
-    { id: "H8", label: "Szerzői jogi nyilatkozat", passed: textContains(allText, ["©", "szerzői jog", "copyright", "minden jog"]) },
-  ].map(c => ({ ...c, details: c.label }));
-  const passedPoints = checks.filter(c => c.passed).length;
-  return { name: "Magyar jogi", checks, score: Math.round((passedPoints / checks.length) * 100), maxPoints: checks.length, passedPoints };
-}
-
-function scanAccessibility(html: string, doc: any): FrameworkResult {
-  const images = doc?.querySelectorAll("img") || [];
-  let withAlt = 0;
-  for (const img of images) { if (img.getAttribute("alt")?.trim()) withAlt++; }
-  const h1 = doc?.querySelectorAll("h1").length || 0;
-  const h2 = doc?.querySelectorAll("h2").length || 0;
-  const lang = doc?.querySelector("html")?.getAttribute("lang");
-
-  const checks = [
-    { id: "A1", label: "Képek alt szövege", passed: images.length === 0 || withAlt / images.length >= 0.8 },
-    { id: "A2", label: "Heading struktúra", passed: h1 >= 1 && h1 <= 2 && h2 > 0 },
-    { id: "A3", label: "Színkontraszt", passed: true },
-    { id: "A4", label: "Billentyűzetes navigáció", passed: html.includes("tabindex") || html.includes("skip-nav") },
-    { id: "A5", label: "Form label-ek", passed: true }, // simplified
-    { id: "A6", label: "Leíró link szövegek", passed: !html.toLowerCase().includes("kattintson ide") },
-    { id: "A7", label: "Nyelvi attribútum", passed: !!lang && lang.length >= 2 },
-    { id: "A8", label: "Viewport meta", passed: !!doc?.querySelector('meta[name="viewport"]') },
-    { id: "A9", label: "Videó feliratok", passed: !html.includes("<video") },
-    { id: "A10", label: "Akadálymentességi nyilatkozat", passed: html.toLowerCase().includes("akadálymentesség") || html.toLowerCase().includes("accessibility") },
-  ].map(c => ({ ...c, details: c.label }));
-  const passedPoints = checks.filter(c => c.passed).length;
-  return { name: "Akadálymentesség", checks, score: Math.round((passedPoints / checks.length) * 100), maxPoints: checks.length, passedPoints };
-}
-
-function scanPCI(html: string, url: string): FrameworkResult {
-  const htmlLower = html.toLowerCase();
-  const providers = ["stripe", "paypal", "simplepay", "barion", "braintree"];
-  const detected = providers.find(p => htmlLower.includes(p));
-  const checks = [
-    { id: "P1", label: "HTTPS", passed: url.startsWith("https://") },
-    { id: "P2", label: "Hosted payment", passed: !!detected },
-    { id: "P3", label: "Kártyaadat nem URL-ben", passed: !htmlLower.includes("ccnum") },
-    { id: "P4", label: "Biztonsági oldal", passed: textContains(html, ["security", "biztonság", "trust"]) },
-    { id: "P5", label: "Biztonsági jelvények", passed: textContains(html, ["ssl", "secure", "pci"]) },
-    { id: "P6", label: "Payment processor", passed: !!detected },
-  ].map(c => ({ ...c, details: c.label }));
-  const passedPoints = checks.filter(c => c.passed).length;
-  return { name: "Fizetési biztonság", checks, score: Math.round((passedPoints / checks.length) * 100), maxPoints: checks.length, passedPoints };
-}
-
-function scanCanSpam(allText: string, html: string): FrameworkResult {
-  const checks = [
-    { id: "S1", label: "Leiratkozás", passed: textContains(allText, ["leiratkozás", "unsubscribe"]) },
-    { id: "S2", label: "Fizikai cím", passed: /\d{4}\s+\w+/.test(allText) || textContains(allText, ["utca", "krt.", "út "]) },
-    { id: "S3", label: "Küldő azonosítása", passed: textContains(html, ["©", "kft", "bt.", "zrt."]) },
-    { id: "S4", label: "Nincs előre bejelölt checkbox", passed: true }, // simplified
-    { id: "S5", label: "Email gyakorlatok", passed: textContains(allText, ["email", "hírlevél"]) && textContains(allText, ["leiratkozás"]) },
-  ].map(c => ({ ...c, details: c.label }));
-  const passedPoints = checks.filter(c => c.passed).length;
-  return { name: "E-mail szabályozás", checks, score: Math.round((passedPoints / checks.length) * 100), maxPoints: checks.length, passedPoints };
-}
-
-function runComplianceScan(html: string, subPages: Record<string, string>, auditUrl?: string): ComplianceScan {
-  const allText = html + " " + Object.values(subPages).join(" ");
-  const privacyText = subPages["privacy"] || "";
-  const doc = new DOMParser().parseFromString(html, "text/html");
-
-  const gdpr = scanGDPR(allText, privacyText, html);
-  const hungarian = scanHungarian(allText);
-  const accessibility = scanAccessibility(html, doc);
-  const pci = scanPCI(html, auditUrl || "https://");
-  const canspam = scanCanSpam(allText, html);
-
-  const overall_score = Math.round(
-    gdpr.score * COMPLIANCE_WEIGHTS.gdpr + hungarian.score * COMPLIANCE_WEIGHTS.hungarian +
-    accessibility.score * COMPLIANCE_WEIGHTS.accessibility + pci.score * COMPLIANCE_WEIGHTS.pci +
-    canspam.score * COMPLIANCE_WEIGHTS.canspam
-  );
-
-  return { gdpr, hungarian, accessibility, pci, canspam, overall_score, grade: scoreToGrade(overall_score) };
-}
-
-// ═══ SCORE CALCULATOR ═══
+// ═══ SCORE CALCULATORS ═══
 function calculateGeoScore(scan: TechnicalScan): number {
   // 6-dimenzió GEO scoring (research alapján: geo-seo-claude + piaci standard)
-  
+
   // 1. AI Citability & Visibility (25%)
   const crawlerVals = Object.values(scan.robots_txt.aiCrawlers || {});
   const crawlerScore = crawlerVals.length > 0
@@ -521,24 +392,59 @@ function calculateGeoScore(scan: TechnicalScan): number {
   return Math.min(aiCitability + brandAuthority + contentQuality + technicalBase + structuredData + platformOpt, 100);
 }
 
-function calculateMarketingScore(scan: TechnicalScan): number {
+function calculateSeoScore(scan: TechnicalScan): number {
   let score = 0;
-  if (scan.meta_title.found) score += 10;
-  if (scan.meta_description.found) score += 10;
-  if (scan.headings.h1 >= 1) score += 8;
-  if (scan.open_graph.found) score += 10;
-  if (scan.cookie_consent.found) score += 8;
-  if (scan.https) score += 10;
-  if (scan.schema_markup.found) score += 10;
-  if (scan.canonical.found) score += 7;
-  if (scan.ga4 || scan.gtm) score += 10;
+
+  // Technical Health (35%): max 35 points
+  if (scan.https) score += 5;
+  if (scan.canonical.found) score += 5;
   if (scan.sitemap.found) score += 5;
   if (scan.robots_txt.found) score += 5;
-  if (scan.favicon) score += 7;
-  return Math.min(score, 100);
+  if (scan.headings.hierarchy_ok) score += 5;
+  if (scan.favicon) score += 3;
+  if (scan.viewport) score += 2;
+  // subtotal max: 30, but we weight to 35
+  const techHealth = Math.min(score, 30);
+  score = 0;
+
+  // Content Relevance (30%): max 30 points
+  if (scan.meta_title.found && scan.meta_title.length >= 30 && scan.meta_title.length <= 60) score += 10;
+  else if (scan.meta_title.found) score += 5;
+  if (scan.meta_description.found && scan.meta_description.length >= 120 && scan.meta_description.length <= 160) score += 10;
+  else if (scan.meta_description.found) score += 5;
+  if (scan.headings.h1 === 1) score += 5;
+  const altCoverage = scan.images.total > 0 ? (scan.images.withAlt / scan.images.total) : 1;
+  if (altCoverage >= 0.8) score += 5;
+  const contentRelevance = Math.min(score, 30);
+  score = 0;
+
+  // Performance (20%): max 20 points
+  if (scan.lang_attr) score += 5;
+  if (scan.viewport) score += 5;
+  if (scan.ga4 || scan.gtm) score += 5;
+  if (scan.open_graph.found) score += 5;
+  const performance = Math.min(score, 20);
+  score = 0;
+
+  // Authority (15%): max 15 points
+  if (scan.schema_markup.found) score += 5;
+  if ((scan.schema_markup.types?.length || 0) > 1) score += 3;
+  if (scan.entity_signals?.has_author) score += 4;
+  if (scan.entity_signals?.has_stats) score += 3;
+  const authority = Math.min(score, 15);
+
+  // Weighted total: scale each bucket to its weight
+  const total = Math.round(
+    (techHealth / 30) * 35 +
+    (contentRelevance / 30) * 30 +
+    (performance / 20) * 20 +
+    (authority / 15) * 15
+  );
+
+  return Math.min(total, 100);
 }
 
-// ═══ 13-AGENT LLM SYSTEM ═══
+// ═══ LLM AGENT SYSTEM ═══
 
 const GLOBAL_RULES = `GLOBÁLIS SZABÁLYOK (minden válaszra vonatkozik):
 - Válaszolj KIZÁRÓLAG valid JSON-ban, semmilyen szöveg vagy markdown NE legyen a JSON-on kívül
@@ -555,9 +461,7 @@ FINDING CÍMKÉZÉS:
 NYELVI SZABÁLYOK (KÖTELEZŐ):
 - TILOS: "köteles", "kötelező bírság", "jogsértés", "teljes elvesztés", "senki nem", "nulla esély", "gépileg vak", "soha nem", "teljesen láthatatlan", "garantáltan", "biztosan"
 - HELYETTE: "szükséges lehet", "kockázatot hordozhat", "súlyosan ronthatja", "jelentősen akadályozott"
-- ÁSZF/impresszum: "A jogszabályok alapján szükséges LEHET" (NEM "köteles")
 - Canonical: "a Google számára a fejlesztői domain válhat elsődlegessé" (NEM "nem indexeli", NEM "Google vak rá")
-- GDPR: "szükséges LEHET hozzájárulás" (NEM "kötelező, bírságolható")
 - fix_effort mező: TILOS "0 Ft", "ingyenes", "díjmentes" — HELYETTE: "belső erőforrással elvégezhető" VAGY "külső fejlesztővel: minimális"
 - business_impact mező: KÖTELEZŐ "MIT VESZÍT KONKRÉTAN" formátum — pl. "Az érdeklődők egy része foglalás helyett versenytársat keres" (NEM "potenciális veszteség", NEM általános megfogalmazás)`;
 
@@ -698,39 +602,6 @@ HALLUCINÁCIÓ TILALOM:
 
 Válasz: {"findings": [...], "schema_code": "JSON-LD string vagy null", "llms_txt": "string vagy null"}`,
 
-  "market-content": `${GLOBAL_RULES}
-Te a marketing tartalom agent vagy. Elemezd a CTA gombokat, értékajánlatot, bizalmi elemeket (testimonials, review-k), brand konzisztenciát.
-Válasz: {"findings": [...], "content_marketing_score": 0-100}`,
-
-  "market-technical": `${GLOBAL_RULES}
-Te a marketing technikai agent vagy. Elemezd az analytics infrastruktúrát (GA4, GTM, Facebook Pixel), konverziómérés képességét, email lista építést (newsletter form?), retargeting lehetőségeket.
-Válasz: {"findings": [...], "technical_marketing_score": 0-100}`,
-
-  "compliance-findings": `${GLOBAL_RULES}
-Te a jogi compliance findings agent vagy. A complianceScan pass/fail adatait és a cookie_consent_from_tech_scan mezőt kapod.
-
-COMPLIANCE STÁTUSZ SZABÁLYOK (KÖTELEZŐ):
-Minden compliance finding evidence mezőjébe az alábbi státusz jelölések egyikét KÖTELEZŐ használni:
-✅ DETEKTÁLT — ha az automatikus scan egyértelműen megtalálta
-❌ NEM DETEKTÁLT — ha az automatikus scan nem találta a HTML-ben
-🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL — ha a scan nem tudja biztonsággal megállapítani
-
-TILOS: erős ítéletek mint "jogsértés", "kötelező bírság", "súlyos mulasztás"
-HELYETTE: "a jogi előírások szerint szükséges lehet", "kockázatot hordoz", "manuális ellenőrzést igényel"
-ÁSZF/impresszum: "szükséges lehet" NEM "köteles"
-
-COOKIE KONZISZTENCIA (KÖTELEZŐ — NINCS KIVÉTEL):
-A cookie_consent_from_tech_scan.found az EGYETLEN hiteles forrás a cookie státuszhoz:
-• found === true → evidence: "✅ DETEKTÁLT ([provider])" — severity max KÖZEPES, téma: granularitás és visszavonás ellenőrzése
-• found === false → evidence: "❌ NEM DETEKTÁLT — automatikus HTML scan alapján" — severity: MAGAS
-TILOS a complianceScan más mezői alapján eltérő cookie státuszt adni. Csak a cookie_consent_from_tech_scan.found számít.
-
-PCI DSS finding: CSAK ha van bizonyíték fizetési formra (Stripe, PayPal, SimplePay, Barion) → egyébként: "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL (az oldalon nem azonosítható fizetési rendszer)"
-CAN-SPAM finding: CSAK ha van bizonyíték email marketing rendszerre → egyébként: "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL"
-
-A 2-4 LEGSÚLYOSABB compliance hiányból generálj findings-eket. Evidence = státusz jelölés + mi nem található konkrétan.
-Válasz: {"findings": [...]}`,
-
   "synthesis-strengths": `${GLOBAL_RULES}
 Te az erősségeket összegyűjtő agent vagy. Kapod az összes eddigi agent eredményét.
 Adj 3 db KONKRÉT erősséget ami JÓL MŰKÖDIK. NEM banalitás ("a weboldal létezik") — hanem KONKRÉT pozitívum (pl. "HTTPS aktív és érvényes tanúsítvánnyal rendelkezik", "A GA4 analytics be van kötve").
@@ -745,95 +616,47 @@ AI témájú hiányosság (llms.txt, AI crawler) SOHA NEM LEHET a biggest_gaps 1
 
 Priorizálás iparág alapján:
 ÉTTEREM: foglalás > értékelések/review profil > helyi SEO (Google Business) > nyitvatartás schema > analytics > AI
-WEBSHOP: HTTPS > fizetés biztonság > ÁSZF > schema(Product) > kosár UX > AI
+WEBSHOP: HTTPS > fizetés biztonság > schema(Product) > kosár UX > AI
 SZOLGÁLTATÓ: CTA > árazás > referenciák > schema(LocalBusiness) > analytics > AI
 SZÁLLÁSHELY: foglalás CTA > értékelések > szezon tartalom > schema > AI
-ÁLTALÁNOS: legsúlyosabb tech hiba > CTA > jogi alapok > schema > AI
+ÁLTALÁNOS: legsúlyosabb tech hiba > CTA > SEO alapok > schema > AI
 
 Válasz: {"biggest_gaps": ["...", "...", "..."], "fastest_fixes": ["...", "...", "..."]}`,
 
   "synthesis-quickwins": `${GLOBAL_RULES}
 Te a quick win priorizáló agent vagy. 3 quick win-t adj ÜZLETI PRIORITÁS sorrendben.
-KÖTELEZŐ: legalább 1 üzleti + 1 jogi + 1 technikai típusú.
+KÖTELEZŐ: legalább 1 geo + 1 seo + 1 technikai típusú.
 
-AI-TÉMÁJÚ JAVASLAT (llms.txt, AI crawler) SOHA NEM LEHET AZ 1. VAGY 2. QUICK WIN. Ha AI témájú kerül be → csak 3. helyre, és csak ha nincs fontosabb jogi/technikai probléma.
+AI-TÉMÁJÚ JAVASLAT (llms.txt, AI crawler) SOHA NEM LEHET AZ 1. VAGY 2. QUICK WIN. Ha AI témájú kerül be → csak 3. helyre, és csak ha nincs fontosabb seo/technikai probléma.
 
 QUICK WIN SORREND — IPARÁGFÜGGŐ (a businessType alapján):
-ÉTTEREM: 1) ha nincs online foglalás → ez KÖTELEZŐEN az 1. quick win (Quandoo/TheFork/Dishcult regisztráció) 2) ha van erős értékelési profil (Google/TripAdvisor) → ezt emeld ki a summary-ban; ha NINCS → ez a 2. quick win 3) legsúlyosabb jogi hiba (cookie/impresszum/DSGVO)
-WEBSHOP: 1) HTTPS/fizetési biztonság 2) ÁSZF/fogyasztóvédelem 3) schema(Product)
-SZOLGÁLTATÓ: 1) CTA/árazás javítás 2) tech hiba (sitemap/meta) 3) jogi alap (impresszum)
-SZÁLLÁSHELY: 1) foglalás CTA 2) értékelések/képek 3) jogi dokumentumok
+ÉTTEREM: 1) ha nincs online foglalás → ez KÖTELEZŐEN az 1. quick win (Quandoo/TheFork/Dishcult regisztráció) 2) ha van erős értékelési profil (Google/TripAdvisor) → ezt emeld ki a summary-ban; ha NINCS → ez a 2. quick win 3) legsúlyosabb technikai hiba (sitemap/meta/schema)
+WEBSHOP: 1) HTTPS/fizetési biztonság 2) schema(Product) 3) technikai SEO hiba
+SZOLGÁLTATÓ: 1) CTA/árazás javítás 2) tech hiba (sitemap/meta) 3) schema/strukturált adat
+SZÁLLÁSHELY: 1) foglalás CTA 2) értékelések/képek 3) technikai SEO
 ÜGYNÖKSÉG: 1) portfolio/case study 2) CTA 3) E-E-A-T (csapatbemutató)
-ÁLTALÁNOS: 1) legsúlyosabb tech hiba 2) CTA/konverzió 3) jogi alapok
+ÁLTALÁNOS: 1) legsúlyosabb tech hiba 2) CTA/konverzió 3) SEO alapok
 
 cost mező: TILOS "0 Ft", "ingyenes" — HELYETTE: "belső erőforrással elvégezhető" VAGY "külső fejlesztővel: minimális"
 
-Válasz: {"quick_wins": [{"title":"...","who":"Ki csinálja","time":"Mennyi idő","cost":"Mennyibe kerül","type":"üzleti/jogi/technikai"}, ...]}`,
+Válasz: {"quick_wins": [{"title":"...","who":"Ki csinálja","time":"Mennyi idő","cost":"Mennyibe kerül","type":"geo/seo/technikai"}, ...]}`,
 
   "synthesis-layman": `${GLOBAL_RULES}
 Te a laikus összefoglaló agent vagy. Írj 3-5 mondatos közérthető összefoglalót NEM TECHNIKAI embernek.
 TILOS használni: "canonical URL", "robots.txt", "schema markup", "JSON-LD", "meta tag", "sitemap".
-HELYETTE: "a Google nehezebben találja meg az oldalát", "a jogi dokumentumok hiányosak", "az AI keresők nem látják az oldalt".
+HELYETTE: "a Google nehezebben találja meg az oldalát", "a keresőoptimalizálás hiányos", "az AI keresők nem látják az oldalt".
 Válasz: {"layman_summary": "3-5 mondat magyarul"}`,
 
   "synthesis-categories": `${GLOBAL_RULES}
-Te a score kategória bontó agent vagy. A technicalScan és complianceScan alapján adj kategória bontást.
+Te a score kategória bontó agent vagy. A technicalScan alapján adj kategória bontást.
 
 Minden kategóriához KÖTELEZŐ formátum:
 {"name": "Kategória név", "score": 0-100, "boost": "Konkrét pozitívum az oldalon", "drag": "Konkrét hiányosság", "quick_fix": "1 konkrét javítási lépés (idő + költség)"}
 
 geo_categories (6 db): AI Citability, Brand Authority, Tartalom & E-E-A-T, Technikai alapok, Strukturált adatok, Platform optimalizálás
-marketing_categories (4 db): Tartalom & Üzenetek, Konverzió, SEO & Felfedezhetőség, Brand & Bizalom
+seo_categories (4 db): Technikai egészség, Tartalom relevancia, Teljesítmény, Autoritás
 
-Válasz: {"geo_categories": [...], "marketing_categories": [...]}`,
-
-  "geo-compliance-mini": `${GLOBAL_RULES}
-Te a minimális compliance check agent vagy. Csak a legalapvetőbb jogi/GDPR ellenőrzést végzed.
-Maximum 2 finding. Fókusz: (1) cookie consent, (2) alapvető adatvédelmi oldal megléte.
-COOKIE: A cookie_consent_from_tech_scan.found az EGYETLEN hiteles forrás.
-• found === true → legfeljebb KÖZEPES finding a granularitásról
-• found === false → MAGAS finding: "❌ NEM DETEKTÁLT — cookie hozzájárulás banner hiányzik"
-GDPR: Csak ha egyértelműen hiányzik az adatvédelmi tájékoztató → KÖZEPES finding.
-Minden más compliance téma (PCI, CAN-SPAM, NAIH) → kihagyni.
-Válasz: {"findings": [...]}`,
-
-  // === SZINT 2 AGENT-EK ===
-
-  "szint2-proposal": `${GLOBAL_RULES}
-Te a WebLelet szolgáltatási ajánlat modulja vagy. A partner adatlapból és a findings-ekből generálj 3 csomagot:
-1. ALAP (150-300 EUR/hó): Legkritikusabb hibák javítása
-2. STANDARD (300-600 EUR/hó): Alap + SEO + tartalom
-3. PRÉMIUM (600-1200 EUR/hó): Teljes marketing menedzsment
-
-Minden csomaghoz: mit tartalmaz (5-8 tétel), melyik findings-eket oldja meg, várható üzleti hatás (alacsony/közepes/magas — NEM konkrét Ft).
-Jelöld meg az AJÁNLOTT csomagot. A partner adatlapból használd: havi_ugyfelszam, atlagos_szamlaertek_ft, legnagyobb_uzleti_problema, marketing_budget.
-Válasz: {"packages": [{"name":"...","price":"...","features":[...],"solves":[...],"impact":"..."}], "recommended": 1, "business_impact_summary": "..."}`,
-
-  "szint2-email-sequences": `${GLOBAL_RULES}
-Generálj email szekvenciákat az ügyfél üzlettípusára szabva:
-- Welcome (3 email): subject + 2 mondat tartalom
-- Nurture (5 email): subject + 2 mondat tartalom
-- Konverziós (3 email): subject + 2 mondat tartalom
-ÉS 30 napos social media naptár vázlat (heti bontás, platformok, poszt típusok).
-A partner adatlapból: célcsoport, üzlettípus, versenytársak.
-Válasz: {"sequences": {"welcome": [{"subject":"...","body":"..."}], "nurture": [...], "conversion": [...]}, "social_calendar": "..."}`,
-
-  "szint2-outreach": `${GLOBAL_RULES}
-Generálj megkeresési stratégiát:
-- Csatorna javaslat (email, LinkedIn, telefon — melyik a legalkalmasabb)
-- 3 lépéses email szekvencia (subject + body vázlat)
-- Személyre szabási pontok a partner adatlapból
-- Timing javaslat
-Válasz: {"strategy": {"channels": [...], "email_sequence": [{"step":1,"subject":"...","body":"...","timing":"..."}], "personalization_points": [...], "timing": "..."}}`,
-
-  "szint2-executive": `${GLOBAL_RULES}
-Írj vezetői összefoglalót LAIKUS NYELVEN. TILOS technikai zsargon: canonical, robots.txt, JSON-LD, schema.
-HELYETTE: "a Google nehezebben találja az oldalát", "a jogi dokumentumok hiányoznak", "az AI keresők nem látják".
-- intro: 3-4 mondat NEM technikai döntéshozónak. Használj analógiát! Pl: "Ha az Ön üzlete egy fizikai bolt lenne..."
-- top3: A 3 legfontosabb teendő 1-1 mondatban közérthetően
-- steps: 5 konkrét lépés (ki, mit, mikor)
-A partner adatból: felhasználd a legnagyobb_uzleti_problema-t és a legfontosabb_cel-t.
-Válasz: {"intro": "...", "top3": ["...","...","..."], "steps": ["...","...","...","...","..."]}`,
+Válasz: {"geo_categories": [...], "seo_categories": [...]}`,
 };
 
 async function callAgent(agentName: string, input: Record<string, any>, auditLevel = "szint1"): Promise<any> {
@@ -845,10 +668,8 @@ async function callAgent(agentName: string, input: Record<string, any>, auditLev
   const systemPrompt = AGENT_PROMPTS[agentName];
   if (!systemPrompt) throw new Error(`Unknown agent: ${agentName}`);
 
-  // Cost optimization: Haiku for szint1 (free tier), Sonnet for szint2 (paid)
-  // Haiku 4.5: $1/$5 MTok vs Sonnet 4.6: $3/$15 MTok — ~5x savings on free audits
-  const model = auditLevel === "szint2" ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
-  const maxTokens = auditLevel === "szint2" ? 3000 : 1500;
+  const model = "claude-haiku-4-5-20251001";
+  const maxTokens = 1500;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -929,19 +750,19 @@ function deduplicateFindings(findings: any[]): any[] {
 }
 
 async function runAllAgents(
-  technicalScan: TechnicalScan, complianceScan: ComplianceScan,
+  technicalScan: TechnicalScan,
   rawHtml: string, businessType: string, domain: string, brandName: string,
-  partnerData: any, auditLevel: string, geoScore: number, marketingScore: number,
+  auditLevel: string, geoScore: number, seoScore: number,
   perplexityResults?: any
 ): Promise<any> {
   const rawFindings: any[] = [];
   let totalTokens = 0;
 
-  const al = auditLevel; // shorthand for readability
+  const al = auditLevel;
 
-  // === BATCH 1: GEO-FIRST — 6 párhuzamos agent ===
-  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
-    // GEO AI láthatóság — most Perplexity valós adattal
+  // === BATCH 1: GEO-FIRST — 5 parallel agents ===
+  const [r1, r2, r3, r4, r5] = await Promise.all([
+    // GEO AI visibility — with Perplexity real data
     callAgent("geo-ai-visibility", {
       technicalScan,
       domain,
@@ -949,72 +770,46 @@ async function runAllAgents(
       brandName,
       perplexityResults: perplexityResults || null,
     }, al),
-    // Platform-specifikus scoring (5 AI platform)
+    // Platform-specific scoring (5 AI platforms)
     callAgent("geo-platform-analysis", { technicalScan, domain, businessType }, al),
-    // Technikai GEO (canonical, meta, sitemap, AI crawlers evidence)
+    // Technical GEO (canonical, meta, sitemap, AI crawlers evidence)
     callAgent("geo-technical", { technicalScan, domain }, al),
-    // Tartalom minőség + E-E-A-T + passage quality
+    // Content quality + E-E-A-T + passage quality
     callAgent("geo-content", {
       html: rawHtml.substring(0, 5000),
       businessType,
       passage_quality: technicalScan.passage_quality,
       entity_signals: technicalScan.entity_signals,
     }, al),
-    // Schema + llms.txt generálás
+    // Schema + llms.txt generation
     callAgent("geo-schema", { schema_markup: technicalScan.schema_markup, businessType, domain, brandName, llms_txt: technicalScan.llms_txt }, al),
-    // Compliance mini (cookie + GDPR alap only)
-    callAgent("geo-compliance-mini", { technicalScan, businessType, cookie_consent_from_tech_scan: technicalScan.cookie_consent }, al),
   ]);
 
-  for (const r of [r1, r2, r3, r4, r5, r6]) {
+  for (const r of [r1, r2, r3, r4, r5]) {
     rawFindings.push(...(r.findings || []));
     totalTokens += r.tokensUsed || 0;
   }
 
-  // Deduplikáció — hasonló title-ök szűrése, erősebb severity marad
+  // Deduplication — filter similar titles, keep higher severity
   const allFindings = deduplicateFindings(rawFindings);
 
-  // === BATCH 2: SYNTHESIS — strengths + gaps/fixes + categories PÁRHUZAMOSAN ===
+  // === BATCH 2: SYNTHESIS — strengths + gaps/fixes + categories in parallel ===
   const [r9, r10, r13] = await Promise.all([
-    callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5, r6 }, technicalScan, businessType }, al),
+    callAgent("synthesis-strengths", { allResults: { r1, r2, r3, r4, r5 }, technicalScan, businessType }, al),
     callAgent("synthesis-gaps-fixes", { findings: allFindings, businessType }, al),
-    callAgent("synthesis-categories", { technicalScan, complianceScan, businessType }, al),
+    callAgent("synthesis-categories", { technicalScan, businessType, seoScore }, al),
   ]);
   totalTokens += (r9.tokensUsed || 0) + (r10.tokensUsed || 0) + (r13.tokensUsed || 0);
 
-  // === BATCH 3: QUICKWINS + LAYMAN (kell az előző eredmény) ===
+  // === BATCH 3: QUICKWINS + LAYMAN (needs previous results) ===
   const [r11, r12] = await Promise.all([
-    callAgent("synthesis-quickwins", { findings: allFindings, businessType, complianceScan }, al),
+    callAgent("synthesis-quickwins", { findings: allFindings, businessType }, al),
     callAgent("synthesis-layman", {
       strengths: r9.strengths, biggest_gaps: r10.biggest_gaps,
       findings: allFindings, businessType,
     }, al),
   ]);
   totalTokens += (r11.tokensUsed || 0) + (r12.tokensUsed || 0);
-
-  // === BATCH 4: SZINT 2 EXTRA AGENTS (csak ha szint2 és van partner data) ===
-  let szint2Extra: any = {};
-  if (auditLevel === "szint2" && partnerData) {
-    const scores = { geo: geoScore, marketing: marketingScore, compliance: complianceScan.overall_score };
-    const [proposal, emailSeq, outreach, execSummary] = await Promise.all([
-      callAgent("szint2-proposal", { findings: allFindings, partnerData, businessType, scores }, "szint2"),
-      callAgent("szint2-email-sequences", { findings: allFindings, partnerData, businessType }, "szint2"),
-      callAgent("szint2-outreach", { findings: allFindings, partnerData, businessType }, "szint2"),
-      callAgent("szint2-executive", { strengths: r9.strengths, biggest_gaps: r10.biggest_gaps, partnerData, businessType, scores }, "szint2"),
-    ]);
-    totalTokens += (proposal.tokensUsed || 0) + (emailSeq.tokensUsed || 0) + (outreach.tokensUsed || 0) + (execSummary.tokensUsed || 0);
-
-    szint2Extra = {
-      proposal_packages: proposal.packages || [],
-      business_impact_summary: proposal.business_impact_summary || "",
-      email_sequences: emailSeq.sequences || {},
-      social_calendar_summary: emailSeq.social_calendar || "",
-      outreach_strategy: outreach.strategy || {},
-      executive_layman_intro: execSummary.intro || "",
-      top3_layman: execSummary.top3 || [],
-      simple_action_steps: execSummary.steps || [],
-    };
-  }
 
   return {
     findings: allFindings,
@@ -1026,7 +821,7 @@ async function runAllAgents(
     schema_code: r5.schema_code || null,
     llms_txt: r5.llms_txt || null,
     geo_categories: r13.geo_categories || [],
-    marketing_categories: r13.marketing_categories || [],
+    seo_categories: r13.seo_categories || [],
     platform_scores: r2.platform_scores || {},
     ai_citability_score: r1.ai_citability_score || 0,
     brand_authority_score: r1.brand_authority_score || 0,
@@ -1035,7 +830,6 @@ async function runAllAgents(
     passage_quality: technicalScan.passage_quality || {},
     entity_signals: technicalScan.entity_signals || {},
     tokensUsed: totalTokens,
-    ...szint2Extra,
   };
 }
 
@@ -1105,7 +899,6 @@ function renderHbs(tmpl: string, data: Record<string, any>): string {
 async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint8Array> {
   const apiKey = Deno.env.get("PDFBOLT_API_KEY")!;
 
-  // Az audit JSON-t templateData-ként küldjük a PDFBolt template-nek
   const templateData = {
     // Alap adatok
     domain: auditJson.domain || "",
@@ -1113,23 +906,19 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     date: auditJson.date || new Date().toISOString().split("T")[0],
     audit_level: auditJson.audit_level || "szint1",
     business_type: auditJson.business_type || "Általános",
-    
-    // Score-ok + előre kiszámolt szín osztályok
+
+    // Score-ok + pre-computed color classes
     geo_score: auditJson.geo_score || 0,
     geo_color: (auditJson.geo_score || 0) < 40 ? "gc-red" : (auditJson.geo_score || 0) < 75 ? "gc-yellow" : "gc-green",
-    marketing_score: auditJson.marketing_score || 0,
-    marketing_color: (auditJson.marketing_score || 0) < 40 ? "gc-red" : (auditJson.marketing_score || 0) < 75 ? "gc-yellow" : "gc-green",
-    compliance_score: auditJson.compliance_score || 0,
-    compliance_color: (auditJson.compliance_score || 0) < 40 ? "gc-red" : (auditJson.compliance_score || 0) < 75 ? "gc-yellow" : "gc-green",
-    compliance_grade: auditJson.compliance_grade || "N/A",
-    sales_score: auditJson.sales_score || null,
-    
+    seo_score: auditJson.seo_score || 0,
+    seo_color: (auditJson.seo_score || 0) < 40 ? "gc-red" : (auditJson.seo_score || 0) < 75 ? "gc-yellow" : "gc-green",
+
     // Összefoglaló
     strengths: auditJson.strengths || [],
     biggest_gaps: auditJson.biggest_gaps || [],
     fastest_fixes: auditJson.fastest_fixes || [],
     layman_summary: auditJson.layman_summary || "",
-    
+
     // Findings
     findings: (auditJson.findings || []).map((f: any) => ({
       severity: f.severity || "",
@@ -1144,7 +933,7 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       fix_effort: f.fix_effort || "",
       priority: f.priority || "",
     })),
-    // Pre-sliced findings for specific pages (avoids Handlebars @second / limit issues)
+    // Pre-sliced findings for specific pages
     findings_p2: (auditJson.findings || []).slice(0, 2).map((f: any) => ({
       severity: f.severity || "",
       tag: f.tag || "",
@@ -1171,7 +960,7 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       fix_effort: f.fix_effort || "",
       priority: f.priority || "",
     })),
-    
+
     // Quick wins
     quick_wins: (auditJson.quick_wins || []).map((q: any, i: number) => ({
       number: i + 1,
@@ -1181,7 +970,7 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       time: q.time || "",
       cost: q.cost || "",
     })),
-    
+
     // Platform scores (5 AI platform)
     platform_scores: auditJson.platform_scores || {},
     platform_scores_list: (() => {
@@ -1195,7 +984,7 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       ];
     })(),
 
-    // Perplexity valós mérés
+    // Perplexity real measurement
     perplexity_cited_count: auditJson.perplexity_results?.cited_count || 0,
     perplexity_total_queries: auditJson.perplexity_results?.total_queries || 5,
     perplexity_has_data: !!(auditJson.perplexity_results?.total_queries),
@@ -1207,7 +996,7 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       return `⚠️ ${r.cited_count}/${r.total_queries} lekérdezésnél idéz`;
     })(),
 
-    // llms.txt státusz
+    // llms.txt status
     llms_txt_found: !!(auditJson.llms_txt_status?.found),
     llms_txt_label: auditJson.llms_txt_status?.found
       ? `✅ DETEKTÁLT (${auditJson.llms_txt_status?.size || 0} karakter${auditJson.llms_txt_status?.has_full ? " + llms-full.txt is megvan" : ""})`
@@ -1245,7 +1034,6 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     const ac = (auditJson.technical_scan?.robots_txt?.aiCrawlers || {}) as Record<string, string>;
     const entries = Object.entries(ac);
     if (entries.length === 0) {
-      // Fallback: show all 14 known crawlers as N/A if no data
       return [
         "GPTBot","ChatGPT-User","Google-Extended","Googlebot","Bingbot",
         "PerplexityBot","ClaudeBot","Anthropic-ai","cohere-ai",
@@ -1260,19 +1048,15 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     }));
   })(),
 
-  // Kategória bontás (score bar-okhoz, szín előre számolva)
+  // Category breakdown (score bars, pre-computed colors)
     geo_categories: (auditJson.geo_categories || []).map((c: any) => ({...c, color: (c.score||0) < 40 ? "fill-red" : (c.score||0) < 75 ? "fill-yellow" : "fill-green"})),
-    marketing_categories: (auditJson.marketing_categories || []).map((c: any) => ({...c, color: (c.score||0) < 40 ? "fill-red" : (c.score||0) < 75 ? "fill-yellow" : "fill-green"})),
+    seo_categories: (auditJson.seo_categories || []).map((c: any) => ({...c, label: c.name || c.label || "", color: (c.score||0) < 40 ? "fill-red" : (c.score||0) < 75 ? "fill-yellow" : "fill-green"})),
 
-    // Compliance részletek
-    compliance_categories: auditJson.compliance_categories || [],
-    
-    // Pre-computed status labels — avoid nested {{#if}} in template
+    // Pre-computed status labels
     geo_status_label: (auditJson.geo_score || 0) >= 70 ? "✅ Jó" : (auditJson.geo_score || 0) >= 45 ? "⚠️ Fejlesztendő" : "🔴 Kritikus",
-    marketing_status_label: (auditJson.marketing_score || 0) >= 70 ? "✅ Jó" : (auditJson.marketing_score || 0) >= 45 ? "⚠️ Fejlesztendő" : "🔴 Kritikus",
-    compliance_status_label: (auditJson.compliance_score || 0) >= 75 ? "✅ Megfelelő" : (auditJson.compliance_score || 0) >= 40 ? "⚠️ Hiányos" : "🔴 Kritikus",
+    seo_status_label: (auditJson.seo_score || 0) >= 70 ? "✅ Jó" : (auditJson.seo_score || 0) >= 45 ? "⚠️ Fejlesztendő" : "🔴 Kritikus",
 
-    // GEO Score methodology — 6 dimenzió (research alapján)
+    // GEO Score methodology — 6 dimensions
     score_methodology: (() => {
       const ts = auditJson.technical_scan || {};
       const c = (s: number) => s < 40 ? "fill-red" : s < 75 ? "fill-yellow" : "fill-green";
@@ -1309,24 +1093,10 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
       ];
     })(),
 
-    // Compliance framework státusz — detektált / nem detektált / manuális
-    compliance_frameworks: (() => {
-      const ts = auditJson.technical_scan || {};
-      const cs = auditJson.compliance_scan || {};
-      const cf = (s: string, c: string) => ({ status: s, cls: c });
-      return [
-        { name: "Cookie hozzájárulás", ...cf(ts.cookie_consent?.found ? `✅ DETEKTÁLT (${ts.cookie_consent?.provider || "azonosítva"})` : "❌ NEM DETEKTÁLT", ts.cookie_consent?.found ? "cf-ok" : "cf-fail") },
-        { name: "GDPR / Adatvédelem", ...cf((cs.gdpr?.passedPoints || 0) >= 5 ? "✅ DETEKTÁLT" : (cs.gdpr?.passedPoints || 0) >= 2 ? "🔍 RÉSZLEGES" : "❌ NEM DETEKTÁLT", (cs.gdpr?.passedPoints || 0) >= 5 ? "cf-ok" : (cs.gdpr?.passedPoints || 0) >= 2 ? "cf-warn" : "cf-fail") },
-        { name: "Magyar jogi dok. (ÁSZF, impresszum)", ...cf((cs.hungarian?.passedPoints || 0) >= 3 ? "🔍 RÉSZBEN DETEKTÁLT" : "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL", (cs.hungarian?.passedPoints || 0) >= 3 ? "cf-warn" : "cf-manual") },
-        { name: "Akadálymentesség (WCAG)", ...cf("🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL", "cf-manual") },
-        { name: "Fizetési / PCI DSS", ...cf((cs.pci?.passedPoints || 0) >= 4 ? "✅ MEGFELEL" : "🔍 MANUÁLIS ELLENŐRZÉST IGÉNYEL", (cs.pci?.passedPoints || 0) >= 4 ? "cf-ok" : "cf-manual") },
-      ];
-    })(),
-
-    // Technikai mellékletek — szint1-ben üres (upsell hook), szint2-ben valódi kód
+    // Technical appendices — szint1: empty (upsell hook), szint2: real code
     schema_code: auditJson.audit_level === "szint2" ? (auditJson.schema_code || "") : "",
     llms_txt: auditJson.audit_level === "szint2" ? (auditJson.llms_txt || "") : "",
-    
+
     // Config (white-label)
     company_name: config.company_name || "WebLelet",
     company_tagline: config.company_tagline || "",
@@ -1334,21 +1104,6 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     contact_website: config.contact_website || "",
     primary_color: config.primary_color || "#2563EB",
   };
-
-  // Szint 2 extra adatok a template-hez
-  if (auditJson.audit_level === "szint2") {
-    Object.assign(templateData, {
-      is_szint2: true,
-      proposal_packages: auditJson.proposal_packages || [],
-      business_impact_summary: auditJson.business_impact_summary || "",
-      email_sequences: auditJson.email_sequences || {},
-      outreach_strategy: auditJson.outreach_strategy || {},
-      executive_layman_intro: auditJson.executive_layman_intro || "",
-      top3_layman: auditJson.top3_layman || [],
-      simple_action_steps: auditJson.simple_action_steps || [],
-      partner_data: auditJson.partner_data || null,
-    });
-  }
 
   // Server-side inline rendering — zero external dependencies
   const renderedHtml = renderHbs(PDF_TEMPLATE, templateData);
@@ -1359,7 +1114,6 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     headers: { "API-KEY": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
       html: templateB64,
-      // templateData not needed — template already server-side rendered
     }),
   });
 
@@ -1405,10 +1159,7 @@ serve(async (req) => {
     // 2. TECHNICAL SCAN (with llms.txt data)
     const technicalScan = runTechnicalScan(html, url, robotsTxt, sitemapRes?.status || null, llmsTxtResult);
 
-    // 3. COMPLIANCE SCAN
-    const complianceScan = runComplianceScan(html, subPages, url);
-
-    // 3b. PERPLEXITY VISIBILITY CHECK (parallel with other work)
+    // 3. PERPLEXITY VISIBILITY CHECK
     const perplexityResults = await checkPerplexityVisibility(
       new URL(url).hostname.replace("www.", ""),
       new URL(url).hostname.replace("www.", "").split(".")[0],
@@ -1417,19 +1168,16 @@ serve(async (req) => {
 
     // 4. SCORES
     const geoScore = calculateGeoScore(technicalScan);
-    const marketingScore = calculateMarketingScore(technicalScan);
+    const seoScore = calculateSeoScore(technicalScan);
 
     await updateStatus("analyzing", {
       raw_html: html.substring(0, 100000),
       technical_scan: technicalScan,
-      compliance_scan: complianceScan,
       geo_score: geoScore,
-      marketing_score: marketingScore,
-      compliance_score: complianceScan.overall_score,
-      compliance_grade: complianceScan.grade,
+      seo_score: seoScore,
     });
 
-    // 4.5. PARTNER DATA + MODULES + EMAIL kiolvasás DB-ből
+    // 4.5. PARTNER DATA + MODULES + EMAIL from DB
     const { data: auditRow } = await supabase
       .from("audits")
       .select("partner_data, modules, email")
@@ -1439,13 +1187,13 @@ serve(async (req) => {
     const modules = auditRow?.modules || null;
     const auditEmail = auditRow?.email || null;
 
-    // 5. 13-AGENT LLM ANALYSIS (+4 Szint 2 agent ha van partner data)
+    // 5. LLM AGENT ANALYSIS
     const domain = new URL(url).hostname.replace("www.", "");
     const brandName = domain.split(".")[0].charAt(0).toUpperCase() + domain.split(".")[0].slice(1);
 
     const agentResults = await runAllAgents(
-      technicalScan, complianceScan, html, business_type, domain, brandName,
-      partnerData, audit_level, geoScore, marketingScore, perplexityResults
+      technicalScan, html, business_type, domain, brandName,
+      audit_level, geoScore, seoScore, perplexityResults
     );
 
     // 6. BUILD JSON
@@ -1453,9 +1201,8 @@ serve(async (req) => {
       url, domain, brand_name: brandName,
       date: new Date().toISOString().split("T")[0],
       business_type, audit_level,
-      geo_score: geoScore, marketing_score: marketingScore,
-      compliance_score: complianceScan.overall_score, compliance_grade: complianceScan.grade,
-      technical_scan: technicalScan, compliance_scan: complianceScan,
+      geo_score: geoScore, seo_score: seoScore,
+      technical_scan: technicalScan,
       perplexity_results: perplexityResults,
       llms_txt_status: technicalScan.llms_txt,
       passage_quality: technicalScan.passage_quality,
@@ -1469,20 +1216,8 @@ serve(async (req) => {
       schema_code: agentResults.schema_code,
       llms_txt: agentResults.llms_txt,
       geo_categories: agentResults.geo_categories,
-      marketing_categories: agentResults.marketing_categories,
+      seo_categories: agentResults.seo_categories,
       platform_scores: agentResults.platform_scores,
-      // Szint 2 extras
-      ...(audit_level === "szint2" ? {
-        proposal_packages: agentResults.proposal_packages,
-        business_impact_summary: agentResults.business_impact_summary,
-        email_sequences: agentResults.email_sequences,
-        social_calendar_summary: agentResults.social_calendar_summary,
-        outreach_strategy: agentResults.outreach_strategy,
-        executive_layman_intro: agentResults.executive_layman_intro,
-        top3_layman: agentResults.top3_layman,
-        simple_action_steps: agentResults.simple_action_steps,
-        partner_data: partnerData,
-      } : {}),
     };
 
     // 7. SANITIZE + VALIDATE
@@ -1492,16 +1227,16 @@ serve(async (req) => {
     const validation = validateAuditJson(auditJson);
 
     if (!validation.passed) {
-      // Retry: rerun synthesis agents only (faster than all 13)
+      // Retry: rerun synthesis agents only (faster than all)
       const retryR10 = await callAgent("synthesis-gaps-fixes", { findings: agentResults.findings, businessType: business_type });
-      const retryR11 = await callAgent("synthesis-quickwins", { findings: agentResults.findings, businessType: business_type, complianceScan });
+      const retryR11 = await callAgent("synthesis-quickwins", { findings: agentResults.findings, businessType: business_type });
       auditJson.biggest_gaps = retryR10.biggest_gaps || auditJson.biggest_gaps;
       auditJson.fastest_fixes = retryR10.fastest_fixes || auditJson.fastest_fixes;
       auditJson.quick_wins = retryR11.quick_wins || auditJson.quick_wins;
 
       const retryValidation = validateAuditJson(auditJson);
       if (!retryValidation.passed) {
-        // szint1 (public free audit): ne álljunk le, generáljuk a PDF-et a meglévő adatokkal
+        // szint1 (public free audit): don't stop, generate PDF with existing data
         if (audit_level === "szint1") {
           console.warn("szint1 validation warning (continuing to PDF):", retryValidation.errors.join("; "));
         } else {
@@ -1541,11 +1276,11 @@ serve(async (req) => {
       processing_time_ms: Date.now() - startTime,
     });
 
-    // 11. MAKE.COM WEBHOOK — PDF kézbesítés értesítés
+    // 11. MAKE.COM WEBHOOK — PDF delivery notification
     const makeWebhookUrl = Deno.env.get("MAKE_WEBHOOK_URL");
     if (makeWebhookUrl && auditEmail) {
       try {
-        // Signed URL generálás (1 órás érvényesség)
+        // Signed URL generation (1 hour validity)
         const { data: signedUrlData } = await supabase.storage
           .from("audit-pdfs")
           .createSignedUrl(pdfFileName, 3600);
@@ -1564,9 +1299,7 @@ serve(async (req) => {
             pdf_signed_url: pdfSignedUrl,
             pdf_path: pdfFileName,
             geo_score: geoScore,
-            marketing_score: marketingScore,
-            compliance_score: complianceScan.overall_score,
-            compliance_grade: complianceScan.grade,
+            seo_score: seoScore,
           }),
         });
       } catch (webhookErr) {
