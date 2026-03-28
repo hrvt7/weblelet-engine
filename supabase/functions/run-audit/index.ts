@@ -3,8 +3,6 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 import { PDF_TEMPLATE } from "./template.ts";
-// @ts-ignore
-import Handlebars from "npm:handlebars";
 
 // ═══ TYPES ═══
 interface TechnicalScan {
@@ -801,19 +799,59 @@ function validateAuditJson(data: any): { passed: boolean; errors: string[] } {
   return { passed: errors.length === 0, errors };
 }
 
+
+// ═══ INLINE HANDLEBARS RENDERER (no external deps) ═══════════════════════════
+// Handles: {{var}}, {{{var}}}, {{#each}}, {{#if (gte a b)}}, {{#if var}},
+//          {{else}}, {{/if}}, {{/each}}, {{lookup arr n}}, {{@index}}
+// NOTE: No nested #if/#each support needed — pre-compute complex expressions
+//       in templateData instead.
+function renderHbs(tmpl: string, data: Record<string, any>): string {
+  function gv(obj: any, path: string): any {
+    if (!path || path === "this") return obj;
+    return path.split(".").reduce((o: any, k: string) => (o != null ? o[k] : ""), obj) ?? "";
+  }
+  function esc(v: any): string {
+    return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function evalCond(c: string, ctx: any): boolean {
+    const m = c.trim().match(/^\(gte\s+([\w.]+)\s+([\w.]+)\)$/);
+    if (m) {
+      const av = Number(isNaN(+m[1]) ? gv(ctx, m[1]) : m[1]);
+      const bv = Number(isNaN(+m[2]) ? gv(ctx, m[2]) : m[2]);
+      return av >= bv;
+    }
+    return !!gv(ctx, c.trim());
+  }
+  function p(t: string, ctx: any): string {
+    t = t.replace(/\{\{\{([\w.]+)\}\}\}/g, (_: string, k: string) => String(gv(ctx, k)));
+    t = t.replace(/\{\{#each ([\w.]+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (_: string, key: string, body: string) => {
+      const arr = gv(ctx, key); if (!Array.isArray(arr)) return "";
+      return arr.map((item: any, i: number) => {
+        const c2 = { ...ctx, ...(item && typeof item === "object" ? item : { this: item }),
+          "@index": i, "@first": i===0, "@last": i===arr.length-1 };
+        return p(body, c2);
+      }).join("");
+    });
+    t = t.replace(/\{\{#unless ([\w.]+)\}\}([\s\S]*?)\{\{\/unless\}\}/g, (_: string, k: string, body: string) =>
+      !gv(ctx, k) ? p(body, ctx) : "");
+    t = t.replace(/\{\{#if ([^}]+)\}\}([\s\S]*?)(?:\{\{else\}\}([\s\S]*?))?\{\{\/if\}\}/g,
+      (_: string, c3: string, ib: string, eb: string = "") => evalCond(c3, ctx) ? p(ib, ctx) : p(eb, ctx));
+    t = t.replace(/\{\{lookup ([\w.]+) (\d+)\}\}/g, (_: string, k: string, i: string) => {
+      const arr = gv(ctx, k); return Array.isArray(arr) ? esc(arr[+i]) : "";
+    });
+    t = t.replace(/\{\{@([\w]+)\}\}/g, (_: string, k: string) => String(ctx["@"+k] ?? ""));
+    t = t.replace(/\{\{([^#\/!>@{][^}]*)\}\}/g, (_: string, k: string) => esc(gv(ctx, k.trim())));
+    return t;
+  }
+  return p(tmpl, data);
+}
+
 // ═══ PDF GENERATION ═══
 async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint8Array> {
   const apiKey = Deno.env.get("PDFBOLT_API_KEY")!;
 
-  // Server-side Handlebars rendering — PDFBolt /v1/direct does NOT process
-  // Handlebars syntax when using the html (base64) field.
-  // We render the template ourselves and send plain HTML to PDFBolt.
-  // Register helpers (idempotent — safe to call on warm isolate)
-  if (!Handlebars.helpers["gte"]) {
-    Handlebars.registerHelper("gte", function(a: number, b: number) { return a >= b; });
-  }
-  const compiledTemplate = Handlebars.compile(PDF_TEMPLATE);
-  const renderedHtml = compiledTemplate(templateData);
+  // Server-side inline rendering — zero external dependencies
+  const renderedHtml = renderHbs(PDF_TEMPLATE, templateData);
   const templateB64 = btoa(unescape(encodeURIComponent(renderedHtml)));
 
   // Az audit JSON-t templateData-ként küldjük a PDFBolt template-nek
@@ -900,6 +938,11 @@ async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint
     // Compliance részletek
     compliance_categories: auditJson.compliance_categories || [],
     
+    // Pre-computed status labels — avoid nested {{#if}} in template
+    geo_status_label: (auditJson.geo_score || 0) >= 70 ? "✅ Jó" : (auditJson.geo_score || 0) >= 45 ? "⚠️ Fejlesztendő" : "🔴 Kritikus",
+    marketing_status_label: (auditJson.marketing_score || 0) >= 70 ? "✅ Jó" : (auditJson.marketing_score || 0) >= 45 ? "⚠️ Fejlesztendő" : "🔴 Kritikus",
+    compliance_status_label: (auditJson.compliance_score || 0) >= 75 ? "✅ Megfelelő" : (auditJson.compliance_score || 0) >= 40 ? "⚠️ Hiányos" : "🔴 Kritikus",
+
     // Score methodology — 5×20% transzparens bontás
     score_methodology: (() => {
       const ts = auditJson.technical_scan || {};

@@ -663,17 +663,17 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
         <tr style="border-bottom:1px solid #f1f5f9;">
           <td style="padding:5px 8px;color:#334155;">GEO / SEO</td>
           <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{geo_score}}/100</td>
-          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{#if (gte geo_score 70)}}✅ Jó{{else}}{{#if (gte geo_score 45)}}⚠ Fejlesztendő{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{geo_status_label}}</td>
         </tr>
         <tr style="border-bottom:1px solid #f1f5f9;">
           <td style="padding:5px 8px;color:#334155;">Marketing</td>
           <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{marketing_score}}/100</td>
-          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{#if (gte marketing_score 70)}}✅ Jó{{else}}{{#if (gte marketing_score 45)}}⚠ Fejlesztendő{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{marketing_status_label}}</td>
         </tr>
         <tr>
           <td style="padding:5px 8px;color:#334155;">Compliance</td>
           <td style="padding:5px 8px;text-align:center;font-weight:bold;color:#162440;">{{compliance_score}}/100</td>
-          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{compliance_grade}} — {{#if (gte compliance_score 75)}}✅ Megfelelő{{else}}{{#if (gte compliance_score 40)}}⚠ Hiányos{{else}}🔴 Kritikus{{/if}}{{/if}}</td>
+          <td style="padding:5px 8px;text-align:center;font-size:9px;">{{compliance_grade}} — {{compliance_status_label}}</td>
         </tr>
       </table>
       <!-- Audit meta -->
