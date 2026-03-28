@@ -620,7 +620,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
       {{#if schema_code}}
       <h2 class="section-title" style="font-size:13px;">Kész megoldás: Schema Markup (JSON-LD)</h2>
       <p style="font-size:9.5px;color:#64748b;margin-bottom:8px;">Másold be a <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">&lt;head&gt;</code> szekciódba, vagy add át a fejlesztőnek. Teszt: search.google.com/test/rich-results</p>
-      <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{schema_code}}</div>
+      <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{{schema_code}}}</div>
       {{else}}
       <div style="padding:14px 16px;background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #bfdbfe;border-radius:8px;height:100%;">
         <p style="font-size:11px;font-weight:bold;color:#1d4ed8;margin-bottom:6px;">🔒 Schema Markup (JSON-LD) — Szint 2</p>
@@ -633,7 +633,7 @@ h1, h2, h3, p, span, td, th, div { font-family: Arial, Helvetica, sans-serif; }
       {{#if llms_txt}}
       <h2 class="section-title" style="font-size:13px;">Kész megoldás: llms.txt</h2>
       <p style="font-size:9.5px;color:#64748b;margin-bottom:8px;">Töltsd fel ide: <strong>https://{{domain}}/llms.txt</strong></p>
-      <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{llms_txt}}</div>
+      <div class="code-block" style="font-size:8px;max-height:120px;overflow:hidden;">{{{llms_txt}}}</div>
       {{else}}
       <div style="padding:14px 16px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:8px;height:100%;">
         <p style="font-size:11px;font-weight:bold;color:#15803d;margin-bottom:6px;">🔒 llms.txt generálás — Szint 2</p>
