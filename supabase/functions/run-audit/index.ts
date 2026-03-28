@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
+import { PDF_TEMPLATE } from "./template.ts";
 
 // ═══ TYPES ═══
 interface TechnicalScan {
@@ -764,9 +765,8 @@ function validateAuditJson(data: any): { passed: boolean; errors: string[] } {
 // ═══ PDF GENERATION ═══
 async function generatePDFWithPDFBolt(auditJson: any, config: any): Promise<Uint8Array> {
   const apiKey = Deno.env.get("PDFBOLT_API_KEY")!;
-  // Load template from local file (allows updates without PDFBolt dashboard)
-  const templateHtml = await Deno.readTextFile(new URL("./template.html", import.meta.url));
-  const templateB64 = btoa(unescape(encodeURIComponent(templateHtml)));
+  // Template imported from template.ts — base64 encode for PDFBolt html field
+  const templateB64 = btoa(unescape(encodeURIComponent(PDF_TEMPLATE)));
 
   // Az audit JSON-t templateData-ként küldjük a PDFBolt template-nek
   const templateData = {
